@@ -1,6 +1,10 @@
 /**
  * AdminsList Component
  * Responsive list of admins with search and add functionality
+ *
+ * ✅ INTEGRADO CON LARAVEL BACKEND
+ * - Usa AdminProfile del backend
+ * - Soporta roles "admin" (Super Admin) y "moderador" (Moderador)
  */
 
 import { Input } from '@/components/ui/input';
@@ -9,23 +13,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AdminsTable } from './AdminsTable';
 import { AdminCard } from './AdminCard';
 import { Search, Plus, Shield } from 'lucide-react';
-
-interface Admin {
-  id: number;
-  nombre: string;
-  email: string;
-  rol: string;
-  fechaCreacion: string;
-  ultimoAcceso: string;
-}
+import type { AdminProfile } from '@/features/auth';
 
 interface AdminsListProps {
-  admins: Admin[];
+  admins: AdminProfile[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onAdd: () => void;
-  onEdit: (admin: Admin) => void;
-  onDelete: (id: number) => void;
+  onEdit: (admin: AdminProfile) => void;
+  onDelete: (id: string) => void;
+  isLoading?: boolean;
+  canManageUsers?: boolean; // Solo Super Admin puede gestionar usuarios
 }
 
 export const AdminsList: React.FC<AdminsListProps> = ({
@@ -35,6 +33,8 @@ export const AdminsList: React.FC<AdminsListProps> = ({
   onAdd,
   onEdit,
   onDelete,
+  isLoading = false,
+  canManageUsers = true,
 }) => {
   return (
     <section>
@@ -59,35 +59,57 @@ export const AdminsList: React.FC<AdminsListProps> = ({
                 className="pl-10"
               />
             </div>
-            <Button 
+            <Button
               onClick={onAdd}
-              className="w-full sm:w-auto bg-brand-orange hover:bg-brand-orange/90 text-white"
+              disabled={!canManageUsers}
+              className="w-full sm:w-auto bg-brand-orange hover:bg-brand-orange/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!canManageUsers ? 'Solo los Super Admin pueden crear usuarios' : ''}
             >
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Admin
             </Button>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <AdminsTable
-              admins={admins}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          </div>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="text-center py-8 text-muted-foreground">
+              Cargando administradores...
+            </div>
+          )}
 
-          {/* Mobile/Tablet Card View */}
-          <div className="lg:hidden space-y-4">
-            {admins.map((admin) => (
-              <AdminCard
-                key={admin.id}
-                admin={admin}
+          {/* Empty State */}
+          {!isLoading && admins.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery ? 'No se encontraron administradores' : 'No hay administradores registrados'}
+            </div>
+          )}
+
+          {/* Desktop Table */}
+          {!isLoading && admins.length > 0 && (
+            <div className="hidden lg:block overflow-x-auto">
+              <AdminsTable
+                admins={admins}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                canManageUsers={canManageUsers}
               />
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Mobile/Tablet Card View */}
+          {!isLoading && admins.length > 0 && (
+            <div className="lg:hidden space-y-4">
+              {admins.map((admin) => (
+                <AdminCard
+                  key={admin.id}
+                  admin={admin}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  canManageUsers={canManageUsers}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>

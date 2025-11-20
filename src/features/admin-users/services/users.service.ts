@@ -1,203 +1,245 @@
 /**
  * Users Service
- * API service for user management operations (admin)
+ * API service for user management operations (Super Admin only)
+ *
+ * ✅ INTEGRADO CON LARAVEL BACKEND
+ * - Gestión de usuarios Admin y Moderador
+ * - Solo Super Admin puede crear/editar/eliminar usuarios
+ * - Los clientes se registran ellos mismos (no se gestionan aquí)
  */
 
-import type { UserProfile, ClientProfile, AdminProfile } from '@/features/auth';
+import { api, API_ENDPOINTS } from "@/api";
+import type { AdminProfile } from '@/features/auth';
 import type { ApiResponse } from '@/api/types';
+import { transformLaravelUser, mapFrontendRoleToLaravel } from '@/features/auth/utils/transformers';
+
+/**
+ * Estructura de respuesta de Laravel para usuarios
+ */
+interface LaravelUserResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    user?: {
+      id: number;
+      name: string;
+      email: string;
+      phone?: string;
+      role: string; // "Super Admin" | "Moderador"
+      permissions: string[];
+      email_verified_at?: string | null;
+      created_at: string;
+      updated_at?: string;
+    };
+    users?: Array<{
+      id: number;
+      name: string;
+      email: string;
+      phone?: string;
+      role: string;
+      permissions: string[];
+      email_verified_at?: string | null;
+      created_at: string;
+      updated_at?: string;
+    }>;
+  };
+}
 
 export const usersService = {
   /**
-   * Get all clients
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.get('/users/clients');
-   * 2. Eliminar líneas 20-22 (mock)
-   * 3. Laravel debe retornar: { data: ClientProfile[], timestamp: string }
-   */
-  async getClients(): Promise<ApiResponse<ClientProfile[]>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.get('/users/clients');
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: [],
-      timestamp: new Date().toISOString(),
-    });
-  },
-
-  /**
-   * Get all admins
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.get('/users/admins');
-   * 2. Eliminar líneas 37-39 (mock)
-   * 3. Laravel debe retornar: { data: AdminProfile[], timestamp: string }
+   * Listar todos los usuarios Admin y Moderador
+   * ✅ Integrado con Laravel: GET /api/v1/users
+   *
+   * Solo muestra usuarios con rol "Super Admin" o "Moderador"
+   * NO muestra usuarios con rol "Cliente" (se registran públicamente)
    */
   async getAdmins(): Promise<ApiResponse<AdminProfile[]>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.get('/users/admins');
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: [],
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      const response = await api.get<LaravelUserResponse>(API_ENDPOINTS.USERS);
+      const laravelResponse = response.data;
+
+      // Transformar usuarios de Laravel a formato frontend
+      const users = (laravelResponse.data.users || []).map(user =>
+        transformLaravelUser(user) as AdminProfile
+      );
+
+      return {
+        data: users,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw error;
+    }
   },
 
   /**
-   * Update user status (active/inactive)
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.patch(`/users/${userId}/status`, { active });
-   * 2. Eliminar líneas 54-60 (mock)
-   * 3. Laravel debe retornar: { data: UserProfile, message: string, timestamp: string }
+   * Obtener un usuario específico por ID
+   * ✅ Integrado con Laravel: GET /api/v1/users/{id}
    */
-  async updateUserStatus(userId: string, active: boolean): Promise<ApiResponse<UserProfile>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.patch(`/users/${userId}/status`, { active });
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: {} as UserProfile,
-      message: 'Estado actualizado correctamente',
-      timestamp: new Date().toISOString(),
-    });
+  async getUserById(userId: string): Promise<ApiResponse<AdminProfile>> {
+    try {
+      const response = await api.get<LaravelUserResponse>(API_ENDPOINTS.USER_DETAIL(userId));
+      const laravelResponse = response.data;
+
+      if (!laravelResponse.data.user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      const user = transformLaravelUser(laravelResponse.data.user) as AdminProfile;
+
+      return {
+        data: user,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw error;
+    }
   },
 
   /**
-   * Create admin user
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.post('/users/admins', data);
-   * 2. Eliminar líneas 78-84 (mock)
-   * 3. Laravel debe retornar: { data: AdminProfile, message: string, timestamp: string }
+   * Crear nuevo usuario Admin o Moderador
+   * ✅ Integrado con Laravel: POST /api/v1/users
+   *
+   * VALIDACIONES BACKEND:
+   * - Solo Super Admin puede crear usuarios
+   * - Solo puede crear roles "Super Admin" o "Moderador"
+   * - Email debe ser único
+   * - Password requiere confirmación
    */
   async createAdmin(data: {
     name: string;
     email: string;
     password: string;
-    role: string;
+    password_confirmation: string;
+    role: 'admin' | 'moderador';
   }): Promise<ApiResponse<AdminProfile>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.post('/users/admins', data);
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: {} as AdminProfile,
-      message: 'Administrador creado correctamente',
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      // Mapear rol del frontend a Laravel
+      const laravelRole = mapFrontendRoleToLaravel(data.role);
+
+      const response = await api.post<LaravelUserResponse>(API_ENDPOINTS.USERS, {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+        role: laravelRole,
+      });
+
+      const laravelResponse = response.data;
+
+      if (!laravelResponse.data.user) {
+        throw new Error('Error al crear usuario');
+      }
+
+      const user = transformLaravelUser(laravelResponse.data.user) as AdminProfile;
+
+      return {
+        data: user,
+        message: laravelResponse.message || 'Usuario creado exitosamente',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        const errors = error.errors || {};
+        const firstError = Object.values(errors)[0]?.[0] || "Error de validación";
+        throw new Error(firstError as string);
+      }
+      throw error;
+    }
   },
 
   /**
-   * Update admin user
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.put(`/users/admins/${adminId}`, data);
-   * 2. Eliminar líneas 101-107 (mock)
-   * 3. Laravel debe retornar: { data: AdminProfile, message: string, timestamp: string }
+   * Actualizar usuario existente
+   * ✅ Integrado con Laravel: PUT /api/v1/users/{id}
+   *
+   * VALIDACIONES BACKEND:
+   * - Solo Super Admin puede actualizar usuarios
+   * - No puede cambiar su propio rol
+   * - No puede cambiar el rol del último Super Admin
+   * - Password es opcional (solo si se desea cambiar)
    */
-  async updateAdmin(adminId: string, data: Partial<AdminProfile>): Promise<ApiResponse<AdminProfile>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.put(`/users/admins/${adminId}`, data);
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: {} as AdminProfile,
-      message: 'Administrador actualizado correctamente',
-      timestamp: new Date().toISOString(),
-    });
+  async updateAdmin(userId: string, data: {
+    name?: string;
+    email?: string;
+    password?: string;
+    password_confirmation?: string;
+    role?: 'admin' | 'moderador';
+  }): Promise<ApiResponse<AdminProfile>> {
+    try {
+      // Preparar datos para enviar
+      const updateData: any = {};
+
+      if (data.name) updateData.name = data.name;
+      if (data.email) updateData.email = data.email;
+      if (data.password) {
+        updateData.password = data.password;
+        updateData.password_confirmation = data.password_confirmation;
+      }
+      if (data.role) {
+        updateData.role = mapFrontendRoleToLaravel(data.role);
+      }
+
+      const response = await api.put<LaravelUserResponse>(
+        API_ENDPOINTS.USER_DETAIL(userId),
+        updateData
+      );
+
+      const laravelResponse = response.data;
+
+      if (!laravelResponse.data.user) {
+        throw new Error('Error al actualizar usuario');
+      }
+
+      const user = transformLaravelUser(laravelResponse.data.user) as AdminProfile;
+
+      return {
+        data: user,
+        message: laravelResponse.message || 'Usuario actualizado exitosamente',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        const errors = error.errors || {};
+        const firstError = Object.values(errors)[0]?.[0] || "Error de validación";
+        throw new Error(firstError as string);
+      }
+      if (error.response?.status === 403) {
+        throw new Error(error.response.data.message || 'No tienes permisos para realizar esta acción');
+      }
+      throw error;
+    }
   },
 
   /**
-   * Delete admin user
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.delete(`/users/admins/${adminId}`);
-   * 2. Eliminar líneas 122-128 (mock)
-   * 3. Laravel debe retornar: { message: string, timestamp: string }
+   * Eliminar usuario
+   * ✅ Integrado con Laravel: DELETE /api/v1/users/{id}
+   *
+   * VALIDACIONES BACKEND:
+   * - Solo Super Admin puede eliminar usuarios
+   * - No puede eliminarse a sí mismo
+   * - No puede eliminar el último Super Admin del sistema
    */
-  async deleteAdmin(adminId: string): Promise<ApiResponse<void>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.delete(`/users/admins/${adminId}`);
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: undefined as void,
-      message: 'Administrador eliminado correctamente',
-      timestamp: new Date().toISOString(),
-    });
-  },
+  async deleteAdmin(userId: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await api.delete<LaravelUserResponse>(
+        API_ENDPOINTS.USER_DETAIL(userId)
+      );
 
-  /**
-   * ⚠️ ENDPOINT CRÍTICO: Asignación de Roles
-   * 
-   * REQUISITOS DE SEGURIDAD (Backend Laravel):
-   * 
-   * 1. **Middleware**: Solo 'admin' puede ejecutar este endpoint
-   *    Route::middleware(['auth:sanctum', 'admin'])->post('/users/{userId}/assign-role', ...)
-   * 
-   * 2. **Validación**: Backend valida permisos antes de modificar
-   *    if (!auth()->user()->isAdmin()) { abort(403); }
-   * 
-   * 3. **Tabla correcta**: Actualizar user_roles (NO users.role)
-   *    UserRole::updateOrCreate(['user_id' => $userId], ['role' => $request->role]);
-   * 
-   * 4. **Audit Log**: Registrar quién hizo el cambio, cuándo y qué rol
-   *    Log::info("Admin {auth()->id()} changed role of user $userId to $role");
-   * 
-   * 5. **Rate Limiting**: Máximo 10 cambios/hora por admin
-   *    Route::middleware(['throttle:10,60'])->...
-   * 
-   * 6. **Validación de rol válido**: Verificar que el rol existe
-   *    if (!UserRole::isValidRole($request->role)) { abort(422); }
-   * 
-   * Ejemplo Laravel Controller completo:
-   * ```php
-   * public function assignRole(Request $request, $userId)
-   * {
-   *     // Verificar permisos
-   *     if (!auth()->user()->isAdmin()) {
-   *         abort(403, 'No autorizado');
-   *     }
-   *     
-   *     // Validar rol
-   *     $request->validate([
-   *         'role' => 'required|in:admin,cliente',
-   *     ]);
-   *     
-   *     // Actualizar en user_roles table
-   *     $targetUser = User::findOrFail($userId);
-   *     $targetUser->assignRole($request->role);
-   *     
-   *     // Audit log
-   *     Log::info('Role changed', [
-   *         'admin_id' => auth()->id(),
-   *         'admin_email' => auth()->user()->email,
-   *         'target_user_id' => $userId,
-   *         'new_role' => $request->role,
-   *         'ip' => $request->ip(),
-   *         'timestamp' => now(),
-   *     ]);
-   *     
-   *     return response()->json([
-   *         'message' => 'Rol asignado correctamente',
-   *     ]);
-   * }
-   * ```
-   * 
-   * 📖 Ver SECURITY.md para código SQL completo de user_roles table
-   * 
-   * 🔗 CONEXIÓN LARAVEL:
-   * 1. Descomentar: return apiClient.post(`/users/${userId}/roles`, { role });
-   * 2. Eliminar líneas 147-153 (mock)
-   * 3. Laravel debe retornar: { data: UserProfile, message: string, timestamp: string }
-   * 4. IMPORTANTE: Usar tabla user_roles separada (seguridad)
-   */
-  async assignRole(userId: string, role: 'admin' | 'cliente'): Promise<ApiResponse<UserProfile>> {
-    // TODO: Replace with Laravel endpoint
-    // return apiClient.post(`/users/${userId}/roles`, { role });
-    
-    // Mock temporal
-    return Promise.resolve({
-      data: {} as UserProfile,
-      message: 'Rol asignado correctamente',
-      timestamp: new Date().toISOString(),
-    });
+      const laravelResponse = response.data;
+
+      return {
+        data: undefined,
+        message: laravelResponse.message || 'Usuario eliminado exitosamente',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        throw new Error(error.response.data.message || 'No tienes permisos para realizar esta acción');
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Usuario no encontrado');
+      }
+      throw error;
+    }
   },
 };

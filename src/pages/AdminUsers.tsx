@@ -1,33 +1,41 @@
 /**
  * AdminUsers Page
- * Orchestrates users management using business logic hook and UI components
+ * Gestión de usuarios Admin y Moderador
+ *
+ * ✅ INTEGRADO CON LARAVEL BACKEND
+ * - Solo gestiona Admin y Moderador (NO clientes)
+ * - Usa useUsersAdmin hook con API real
  */
 
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar, AdminHeader } from '@/components/layout';
-import { Separator } from '@/components/ui/separator';
 import { useUsersAdmin } from '@/features/admin-users';
-import { ClientsList, AdminsList, AdminFormDialog } from '@/features/admin-users';
+import { AdminsList, AdminFormDialog } from '@/features/admin-users';
+import { DeleteConfirmDialog } from '@/components/common';
+import { useAuth } from '@/features/auth';
 
 const AdminUsuarios: React.FC = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'admin'; // Solo Super Admin puede gestionar usuarios
+
   const {
-    filteredClientes,
     filteredAdmins,
-    searchClientes,
     searchAdmins,
-    expandedCliente,
     isAdminDialogOpen,
     editingAdmin,
     adminFormData,
-    setSearchClientes,
+    isLoading,
+    isSaving,
+    deleteDialogOpen,
+    adminToDelete,
     setSearchAdmins,
     setAdminFormData,
-    handleClienteToggle,
-    handleExpandCliente,
+    setDeleteDialogOpen,
     handleOpenAdminDialog,
     handleCloseAdminDialog,
     handleSubmitAdmin,
     handleDeleteAdmin,
+    confirmDeleteAdmin,
   } = useUsersAdmin();
 
   return (
@@ -38,20 +46,7 @@ const AdminUsuarios: React.FC = () => {
           <AdminHeader title="Gestión de Usuarios" />
 
           {/* Main Content */}
-          <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
-            {/* Clients Section */}
-            <ClientsList
-              clients={filteredClientes}
-              searchQuery={searchClientes}
-              expandedClient={expandedCliente}
-              onSearchChange={setSearchClientes}
-              onToggle={handleClienteToggle}
-              onExpand={handleExpandCliente}
-            />
-
-            {/* Separator */}
-            <Separator className="my-8" />
-
+          <div className="flex-1 p-4 sm:p-6 lg:p-8">
             {/* Admins Section */}
             <AdminsList
               admins={filteredAdmins}
@@ -60,6 +55,8 @@ const AdminUsuarios: React.FC = () => {
               onAdd={() => handleOpenAdminDialog()}
               onEdit={handleOpenAdminDialog}
               onDelete={handleDeleteAdmin}
+              isLoading={isLoading}
+              canManageUsers={isSuperAdmin}
             />
 
             {/* Admin Form Dialog */}
@@ -72,6 +69,16 @@ const AdminUsuarios: React.FC = () => {
               formData={adminFormData}
               onFormDataChange={setAdminFormData}
               onSubmit={handleSubmitAdmin}
+              isLoading={isSaving}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <DeleteConfirmDialog
+              open={deleteDialogOpen}
+              onOpenChange={setDeleteDialogOpen}
+              itemName={adminToDelete?.name || ''}
+              itemType="user"
+              onConfirm={confirmDeleteAdmin}
             />
           </div>
         </SidebarInset>

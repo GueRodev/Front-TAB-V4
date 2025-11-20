@@ -17,7 +17,7 @@ export interface UserProfile {
   phone?: string;
   
   /**
-   * ⚠️ SEGURIDAD: El rol viene de user_roles table (backend PostgreSQL + Laravel)
+   * ⚠️ SEGURIDAD: El rol viene de roles table (backend PostgreSQL + Laravel)
    * 
    * IMPORTANTE:
    * - Este valor se recibe del API Laravel, NO se modifica en el frontend
@@ -39,7 +39,7 @@ export interface UserProfile {
    * Flujo de datos:
    * 1. Frontend llama GET /api/auth/me
    * 2. Laravel verifica token y hace $user->getRole()
-   * 3. Laravel hace query a user_roles table
+   * 3. Laravel hace query a roles table
    * 4. Laravel retorna rol en la respuesta JSON
    * 5. Frontend almacena en AuthContext (solo para UX)
    * 
@@ -49,13 +49,17 @@ export interface UserProfile {
    * - ❌ NUNCA modificar este valor localmente (localStorage)
    * - ❌ NUNCA confiar en headers HTTP del cliente
    * 
-   * 📖 Ver SECURITY.md para:
-   *    - SQL completo de user_roles table
-   *    - Código Laravel completo (modelos, middleware, controllers)
-   *    - Ejemplos de RLS policies en PostgreSQL
-   *    - Tests de seguridad
    */
-  role: 'cliente' | 'admin';
+  /**
+   * Roles disponibles:
+   * - 'admin': Super Admin (mapeo frontend)
+   * - 'moderador': Moderador (mapeo frontend)
+   * - 'cliente': Cliente
+   *
+   * Backend Laravel usa: "Super Admin" | "Moderador" | "Cliente"
+   * Frontend usa: "admin" | "moderador" | "cliente"
+   */
+  role: 'cliente' | 'admin' | 'moderador';
   
   /**
    * Permisos de Spatie (Laravel)
@@ -79,6 +83,6 @@ export interface ClientProfile extends UserProfile {
 }
 
 export interface AdminProfile extends UserProfile {
-  role: 'admin';
-  // Admins do not have addresses
+  role: 'admin' | 'moderador';
+  // Admins and Moderators do not have addresses
 }

@@ -11,26 +11,54 @@ import type { AuthResponse } from '../types/auth.types';
 
 /**
  * Mapea roles de Laravel a roles del frontend
- * 
- * Laravel: "Super Admin" | "Cliente"
- * Frontend: "admin" | "cliente"
- * 
- * @param laravelRole - Rol desde Laravel ("Super Admin" | "Cliente")
- * @returns Rol del frontend ("admin" | "cliente")
- * 
+ *
+ * Laravel: "Super Admin" | "Moderador" | "Cliente"
+ * Frontend: "admin" | "moderador" | "cliente"
+ *
+ * @param laravelRole - Rol desde Laravel ("Super Admin" | "Moderador" | "Cliente")
+ * @returns Rol del frontend ("admin" | "moderador" | "cliente")
+ *
  * @example
  * ```typescript
  * mapLaravelRoleToFrontend("Super Admin") // "admin"
+ * mapLaravelRoleToFrontend("Moderador")   // "moderador"
  * mapLaravelRoleToFrontend("Cliente")     // "cliente"
  * ```
  */
-export function mapLaravelRoleToFrontend(laravelRole: string): 'admin' | 'cliente' {
-  const roleMap: Record<string, 'admin' | 'cliente'> = {
+export function mapLaravelRoleToFrontend(laravelRole: string): 'admin' | 'moderador' | 'cliente' {
+  const roleMap: Record<string, 'admin' | 'moderador' | 'cliente'> = {
     'Super Admin': 'admin',
+    'Moderador': 'moderador',
     'Cliente': 'cliente',
   };
-  
+
   return roleMap[laravelRole] || 'cliente';
+}
+
+/**
+ * Mapea roles del frontend a roles de Laravel
+ *
+ * Frontend: "admin" | "moderador" | "cliente"
+ * Laravel: "Super Admin" | "Moderador" | "Cliente"
+ *
+ * @param frontendRole - Rol del frontend ("admin" | "moderador" | "cliente")
+ * @returns Rol de Laravel ("Super Admin" | "Moderador" | "Cliente")
+ *
+ * @example
+ * ```typescript
+ * mapFrontendRoleToLaravel("admin")      // "Super Admin"
+ * mapFrontendRoleToLaravel("moderador")  // "Moderador"
+ * mapFrontendRoleToLaravel("cliente")    // "Cliente"
+ * ```
+ */
+export function mapFrontendRoleToLaravel(frontendRole: 'admin' | 'moderador' | 'cliente'): string {
+  const roleMap: Record<string, string> = {
+    'admin': 'Super Admin',
+    'moderador': 'Moderador',
+    'cliente': 'Cliente',
+  };
+
+  return roleMap[frontendRole] || 'Cliente';
 }
 
 /**

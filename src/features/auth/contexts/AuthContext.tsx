@@ -174,14 +174,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
 
+  /**
+   * Verifica si el usuario tiene rol de administrador
+   * Incluye tanto 'admin' (Super Admin) como 'moderador' (Moderador)
+   *
+   * ⚠️ SEGURIDAD: Role Check (Client-Side Only)
+   * Esta validación es SOLO para UX (mostrar/ocultar componentes).
+   * El backend DEBE verificar roles en cada endpoint protegido.
+   */
   const isAdmin = (): boolean => {
-    return state.user?.role === 'admin';
+    return state.user?.role === 'admin' || state.user?.role === 'moderador';
   };
 
   /**
    * ⚠️ SEGURIDAD: Role Check (Client-Side Only)
-   * 
-   * Ver comentario en isAdmin() arriba. Esta función también es solo para UX.
+   *
+   * Esta función es solo para UX (mostrar/ocultar componentes).
    */
   const isClient = (): boolean => {
     return state.user?.role === 'cliente';
