@@ -5,8 +5,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Category, Subcategory, CreateCategoryDto, UpdateCategoryDto, CreateSubcategoryDto, UpdateSubcategoryDto } from '../types';
-import { STORAGE_KEYS } from '@/config';
-import { DEFAULT_CATEGORIES } from '../data/categories.data';
 import { categoriesService } from '../services';
 
 // Re-export types for backward compatibility
@@ -15,6 +13,7 @@ export type { Category, Subcategory } from '../types';
 interface CategoriesContextType {
   categories: Category[];
   loading: boolean;
+  deletedCount: number; // Optimistic counter for recycle bin badge
   setCategories: (categories: Category[]) => void;
   syncWithAPI: () => Promise<void>;
   addCategory: (data: CreateCategoryDto) => Promise<Category>;
@@ -26,19 +25,21 @@ interface CategoriesContextType {
   updateSubcategory: (categoryId: string, subcategoryId: string, data: UpdateSubcategoryDto & { newCategoryId?: string }) => Promise<Subcategory>;
   deleteSubcategory: (categoryId: string, subcategoryId: string) => Promise<void>;
   reorderCategories: (categories: Category[]) => Promise<void>;
+  refreshDeletedCount: () => Promise<void>; // Refresh deleted count from API
 }
 
 // Default context value to prevent undefined errors during initialization
 const defaultContextValue: CategoriesContextType = {
   categories: [],
   loading: false,
+  deletedCount: 0,
   setCategories: () => {},
   syncWithAPI: async () => {},
-  addCategory: async () => ({ 
-    id: '', 
-    name: '', 
-    slug: '', 
-    order: 0, 
+  addCategory: async () => ({
+    id: '',
+    name: '',
+    slug: '',
+    order: 0,
     parent_id: null,
     level: 0,
     is_protected: false,
@@ -46,28 +47,28 @@ const defaultContextValue: CategoriesContextType = {
     subcategories: [],
     children: [],
   }),
-  updateCategory: async () => ({ 
-    id: '', 
-    name: '', 
-    slug: '', 
+  updateCategory: async () => ({
+    id: '',
+    name: '',
+    slug: '',
     order: 0,
     parent_id: null,
     level: 0,
     is_protected: false,
-    is_active: true, 
+    is_active: true,
     subcategories: [],
     children: [],
   }),
   deleteCategory: async () => {},
-  restoreCategory: async () => ({ 
-    id: '', 
-    name: '', 
-    slug: '', 
+  restoreCategory: async () => ({
+    id: '',
+    name: '',
+    slug: '',
     order: 0,
     parent_id: null,
     level: 0,
     is_protected: false,
-    is_active: true, 
+    is_active: true,
     subcategories: [],
     children: [],
   }),
@@ -76,27 +77,22 @@ const defaultContextValue: CategoriesContextType = {
   updateSubcategory: async () => ({ id: '', name: '', slug: '', order: 0 }),
   deleteSubcategory: async () => {},
   reorderCategories: async () => {},
+  refreshDeletedCount: async () => {},
 };
 
 const CategoriesContext = createContext<CategoriesContextType>(defaultContextValue);
 
 export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.categories);
-      const parsed = stored ? JSON.parse(stored) : null;
-      return parsed || DEFAULT_CATEGORIES.map(cat => ({ ...cat, isExpanded: false }));
-    } catch (error) {
-      console.error('Error loading categories from storage:', error);
-      return DEFAULT_CATEGORIES.map(cat => ({ ...cat, isExpanded: false }));
-    }
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletedCount, setDeletedCount] = useState(0);
 
-  // Sync with localStorage whenever categories change
+  // Load categories from API on mount
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(categories));
-  }, [categories]);
+    syncWithAPI();
+    refreshDeletedCount(); // Pre-load deleted count for badge
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Sync categories with Laravel API
@@ -107,27 +103,39 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const response = await categoriesService.getAll();
       setCategories(response.data);
-      localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(response.data));
     } catch (error) {
       console.error('Error syncing categories:', error);
-      // Fallback to localStorage on error
-      const stored = localStorage.getItem(STORAGE_KEYS.categories);
-      if (stored) setCategories(JSON.parse(stored));
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   /**
+   * Refresh deleted count from API
+   * 🔗 CONEXIÓN LARAVEL: GET /api/v1/categories/recycle-bin (count only)
+   */
+  const refreshDeletedCount = async () => {
+    try {
+      const response = await categoriesService.getRecycleBin();
+      setDeletedCount(response.data.length);
+    } catch (error) {
+      console.error('Error refreshing deleted count:', error);
+      // Don't throw - this is a background operation
+    }
+  };
+
+  /**
    * Add new category
-   * 🔗 CONEXIÓN LARAVEL: POST /api/categories
+   * 🔗 CONEXIÓN LARAVEL: POST /api/v1/categories
    */
   const addCategory = async (data: CreateCategoryDto): Promise<Category> => {
     setLoading(true);
     try {
       const response = await categoriesService.create(data);
       const newCategory = response.data;
-      setCategories([...categories, newCategory]);
+      // Reload from API to get the full hierarchical structure
+      await syncWithAPI();
       return newCategory;
     } catch (error) {
       console.error('Error adding category:', error);
@@ -139,14 +147,15 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   /**
    * Update existing category
-   * 🔗 CONEXIÓN LARAVEL: PUT /api/categories/{id}
+   * 🔗 CONEXIÓN LARAVEL: PUT /api/v1/categories/{id}
    */
   const updateCategory = async (id: string, data: UpdateCategoryDto): Promise<Category> => {
     setLoading(true);
     try {
       const response = await categoriesService.update(id, data);
       const updatedCategory = response.data;
-      setCategories(categories.map(cat => cat.id === id ? updatedCategory : cat));
+      // Reload from API to ensure consistency
+      await syncWithAPI();
       return updatedCategory;
     } catch (error) {
       console.error('Error updating category:', error);
@@ -157,16 +166,21 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   /**
-   * Delete category
-   * 🔗 CONEXIÓN LARAVEL: DELETE /api/categories/{id}
+   * Delete category (soft delete)
+   * 🔗 CONEXIÓN LARAVEL: DELETE /api/v1/categories/{id}
    */
   const deleteCategory = async (id: string): Promise<void> => {
     setLoading(true);
     try {
       await categoriesService.delete(id);
-      setCategories(categories.filter(cat => cat.id !== id));
+      // Optimistically increment deleted count
+      setDeletedCount(prev => prev + 1);
+      // Reload from API to update the list
+      await syncWithAPI();
     } catch (error) {
       console.error('Error deleting category:', error);
+      // Revert optimistic update on error
+      await refreshDeletedCount();
       throw error;
     } finally {
       setLoading(false);
@@ -175,20 +189,15 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   /**
    * Add new subcategory
-   * 🔗 CONEXIÓN LARAVEL: POST /api/subcategories
+   * 🔗 CONEXIÓN LARAVEL: POST /api/v1/categories (with parent_id)
    */
   const addSubcategory = async (categoryId: string, data: CreateSubcategoryDto): Promise<Subcategory> => {
     setLoading(true);
     try {
       const response = await categoriesService.createSubcategory(categoryId, data);
       const newSubcategory = response.data;
-      
-      setCategories(categories.map(cat => 
-        cat.id === categoryId 
-          ? { ...cat, subcategories: [...cat.subcategories, newSubcategory] }
-          : cat
-      ));
-      
+      // Reload from API to get the full hierarchical structure
+      await syncWithAPI();
       return newSubcategory;
     } catch (error) {
       console.error('Error adding subcategory:', error);
@@ -200,48 +209,19 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   /**
    * Update existing subcategory
-   * 🔗 CONEXIÓN LARAVEL: PUT /api/subcategories/{id}
+   * 🔗 CONEXIÓN LARAVEL: PUT /api/v1/categories/{id}
    */
   const updateSubcategory = async (
-    categoryId: string, 
-    subcategoryId: string, 
+    categoryId: string,
+    subcategoryId: string,
     data: UpdateSubcategoryDto & { newCategoryId?: string }
   ): Promise<Subcategory> => {
     setLoading(true);
     try {
       const response = await categoriesService.updateSubcategory(categoryId, subcategoryId, data);
       const updatedSubcategory = response.data;
-
-      setCategories(categories.map(cat => {
-        // Remove from old category if moved
-        if (data.newCategoryId && cat.id === categoryId && data.newCategoryId !== categoryId) {
-          return {
-            ...cat,
-            subcategories: cat.subcategories.filter(sub => sub.id !== subcategoryId),
-          };
-        }
-
-        // Add to new category if moved
-        if (data.newCategoryId && cat.id === data.newCategoryId) {
-          return {
-            ...cat,
-            subcategories: [...cat.subcategories, updatedSubcategory],
-          };
-        }
-
-        // Update in current category
-        if (cat.id === categoryId) {
-          return {
-            ...cat,
-            subcategories: cat.subcategories.map(sub => 
-              sub.id === subcategoryId ? updatedSubcategory : sub
-            ),
-          };
-        }
-
-        return cat;
-      }));
-
+      // Reload from API to ensure consistency
+      await syncWithAPI();
       return updatedSubcategory;
     } catch (error) {
       console.error('Error updating subcategory:', error);
@@ -252,21 +232,21 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   /**
-   * Delete subcategory
-   * 🔗 CONEXIÓN LARAVEL: DELETE /api/subcategories/{id}
+   * Delete subcategory (soft delete)
+   * 🔗 CONEXIÓN LARAVEL: DELETE /api/v1/categories/{id}
    */
   const deleteSubcategory = async (categoryId: string, subcategoryId: string): Promise<void> => {
     setLoading(true);
     try {
       await categoriesService.deleteSubcategory(categoryId, subcategoryId);
-      
-      setCategories(categories.map(cat => 
-        cat.id === categoryId
-          ? { ...cat, subcategories: cat.subcategories.filter(sub => sub.id !== subcategoryId) }
-          : cat
-      ));
+      // Optimistically increment deleted count
+      setDeletedCount(prev => prev + 1);
+      // Reload from API to update the list
+      await syncWithAPI();
     } catch (error) {
       console.error('Error deleting subcategory:', error);
+      // Revert optimistic update on error
+      await refreshDeletedCount();
       throw error;
     } finally {
       setLoading(false);
@@ -282,10 +262,15 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const response = await categoriesService.restore(id);
       const restoredCategory = response.data;
-      setCategories(categories.map(cat => cat.id === id ? restoredCategory : cat));
+      // Optimistically decrement deleted count
+      setDeletedCount(prev => Math.max(0, prev - 1));
+      // Reload from API to update the list
+      await syncWithAPI();
       return restoredCategory;
     } catch (error) {
       console.error('Error restoring category:', error);
+      // Revert optimistic update on error
+      await refreshDeletedCount();
       throw error;
     } finally {
       setLoading(false);
@@ -300,9 +285,14 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setLoading(true);
     try {
       await categoriesService.forceDelete(id);
-      setCategories(categories.filter(cat => cat.id !== id));
+      // Optimistically decrement deleted count
+      setDeletedCount(prev => Math.max(0, prev - 1));
+      // Reload from API to update the list
+      await syncWithAPI();
     } catch (error) {
       console.error('Error force deleting category:', error);
+      // Revert optimistic update on error
+      await refreshDeletedCount();
       throw error;
     } finally {
       setLoading(false);
@@ -311,21 +301,19 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   /**
    * Reorder categories (drag & drop)
-   * 🔗 CONEXIÓN LARAVEL: POST /api/categories/reorder
+   * 🔗 CONEXIÓN LARAVEL: PUT /api/v1/categories/reorder
    */
   const reorderCategories = async (newCategories: Category[]): Promise<void> => {
     setLoading(true);
     try {
-      const categoryIds = newCategories.map(cat => cat.id);
-      // Support both old and new format for reorder
-      const response = await categoriesService.reorder({ 
-        order: categoryIds,
+      await categoriesService.reorder({
         categories: newCategories.map((cat, index) => ({
           id: cat.id,
           order: index + 1,
         })),
       });
-      setCategories(response.data);
+      // Reload from API to get updated order
+      await syncWithAPI();
     } catch (error) {
       console.error('Error reordering categories:', error);
       throw error;
@@ -335,9 +323,10 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   return (
-    <CategoriesContext.Provider value={{ 
-      categories, 
+    <CategoriesContext.Provider value={{
+      categories,
       loading,
+      deletedCount,
       setCategories,
       syncWithAPI,
       addCategory,
@@ -349,6 +338,7 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       updateSubcategory,
       deleteSubcategory,
       reorderCategories,
+      refreshDeletedCount,
     }}>
       {children}
     </CategoriesContext.Provider>

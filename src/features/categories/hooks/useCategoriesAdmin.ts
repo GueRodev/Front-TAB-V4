@@ -36,6 +36,7 @@ export const useCategoriesAdmin = () => {
   const {
     categories,
     loading,
+    deletedCount,
     addCategory,
     updateCategory,
     deleteCategory,
@@ -109,10 +110,17 @@ export const useCategoriesAdmin = () => {
         title: "Cambios guardados",
         description: "El orden de las categorías se ha actualizado correctamente",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error reordering categories:', error);
+      console.error('Error response:', error.response?.data);
+
+      const errorMessage = error.response?.data?.message
+        || error.message
+        || "No se pudo guardar el orden de las categorías";
+
       toast({
         title: "Error",
-        description: "No se pudo guardar el orden de las categorías",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -254,21 +262,35 @@ export const useCategoriesAdmin = () => {
           newCategoryId: selectedCategoryId !== currentCategory.id ? selectedCategoryId : undefined,
         }
       );
-      
+
       setIsEditSubcategoryOpen(false);
       setEditingSubcategory(null);
       setEditFormData({ name: '' });
-      
+
       toast({
         title: 'Éxito',
         description: 'Los cambios se han guardado exitosamente',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error updating subcategory:', error);
+
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
         toast({
           title: "Error de validación",
           description: firstError.message,
+          variant: "destructive",
+        });
+      } else {
+        // Handle Laravel validation errors (422)
+        const errorMessage = error.response?.data?.message
+          || error.response?.data?.errors?.parent_id?.[0]
+          || error.message
+          || "No se pudo actualizar la subcategoría";
+
+        toast({
+          title: "Error",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -389,6 +411,7 @@ export const useCategoriesAdmin = () => {
     pendingCategories,
     loading,
     hasUnsavedChanges,
+    deletedCount,
 
     // Modal states
     isAddModalOpen,

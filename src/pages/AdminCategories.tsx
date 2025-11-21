@@ -28,6 +28,7 @@ const AdminCategories: React.FC = () => {
     pendingCategories,
     loading,
     hasUnsavedChanges,
+    deletedCount,
 
     // Modal states
     isAddModalOpen,
@@ -73,11 +74,10 @@ const AdminCategories: React.FC = () => {
 
   const {
     deletedCategories,
-    deletedCount,
     handleRestore,
     handleForceDelete,
     isLoading: recycleBinLoading,
-  } = useCategoryRecycleBin();
+  } = useCategoryRecycleBin({ isVisible: showRecycleBin });
 
   return (
     <SidebarProvider>

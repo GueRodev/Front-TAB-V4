@@ -33,6 +33,41 @@ export const CategoryRecycleBin: React.FC<CategoryRecycleBinProps> = ({
   onForceDelete,
   isLoading = false,
 }) => {
+  // Loading state - show skeleton while fetching
+  if (isLoading && deletedCategories.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Papelera de Reciclaje
+          </CardTitle>
+          <CardDescription>
+            Cargando categorías eliminadas...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Skeleton loaders */}
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border-muted animate-pulse">
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="flex gap-2 pt-2">
+                    <div className="h-9 bg-muted rounded flex-1"></div>
+                    <div className="h-9 bg-muted rounded flex-1"></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Empty state
   if (deletedCategories.length === 0) {
     return (
       <Card>

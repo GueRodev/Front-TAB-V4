@@ -23,7 +23,4 @@ export type {
   ReorderCategoriesDto
 } from './types';
 
-// Data
-export * from './data';
-
 // Note: Services and validations are private to this feature

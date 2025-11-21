@@ -54,7 +54,7 @@ const transformLaravelProfile = (laravelUser: LaravelProfileResponse['user']): U
     phone: laravelUser.phone || undefined,
     role,
     permissions: laravelUser.permissions || [],
-    avatar: undefined, // Backend no tiene avatar aún
+    //avatar: undefined, // Backend no tiene avatar aún
     email_verified_at: laravelUser.email_verified_at,
     created_at: laravelUser.created_at,
     updated_at: laravelUser.updated_at,

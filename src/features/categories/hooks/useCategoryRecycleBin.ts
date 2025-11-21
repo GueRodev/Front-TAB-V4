@@ -3,22 +3,62 @@
  * Business logic for managing deleted categories in recycle bin
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useCategories } from '../contexts';
 import { categoriesService } from '../services';
 import { toast } from '@/hooks/use-toast';
 import type { Category } from '../types';
 
-export const useCategoryRecycleBin = () => {
-  const { categories, restoreCategory, forceDeleteCategory } = useCategories();
+interface UseCategoryRecycleBinOptions {
+  /**
+   * If true, will reload deleted categories when this value changes to true
+   * Useful for reloading when the recycle bin modal/section is opened
+   */
+  isVisible?: boolean;
+}
+
+export const useCategoryRecycleBin = (options?: UseCategoryRecycleBinOptions) => {
+  const { restoreCategory, forceDeleteCategory } = useCategories();
   const [isLoading, setIsLoading] = useState(false);
+  const [deletedCategories, setDeletedCategories] = useState<Category[]>([]);
+  const isVisible = options?.isVisible;
 
   /**
-   * Get all soft-deleted categories
+   * Load deleted categories from API on mount and when visibility changes
    */
-  const deletedCategories = useMemo(() => {
-    return categories.filter(cat => cat.deleted_at !== null && cat.deleted_at !== undefined);
-  }, [categories]);
+  useEffect(() => {
+    // Load on mount
+    loadDeletedCategories();
+  }, []);
+
+  /**
+   * Reload when recycle bin becomes visible
+   */
+  useEffect(() => {
+    if (isVisible) {
+      loadDeletedCategories();
+    }
+  }, [isVisible]);
+
+  /**
+   * Load deleted categories from the API
+   */
+  const loadDeletedCategories = async () => {
+    setIsLoading(true);
+    try {
+      const response = await categoriesService.getRecycleBin();
+      setDeletedCategories(response.data);
+    } catch (error) {
+      console.error('Error loading deleted categories:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar las categorías eliminadas',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   /**
    * Count of deleted categories
@@ -30,7 +70,7 @@ export const useCategoryRecycleBin = () => {
    */
   const handleRestore = async (id: string) => {
     const category = deletedCategories.find(c => c.id === id);
-    
+
     if (!category) {
       toast({
         title: 'Error',
@@ -47,6 +87,8 @@ export const useCategoryRecycleBin = () => {
         title: 'Éxito',
         description: `La categoría "${category.name}" ha sido restaurada exitosamente`,
       });
+      // Reload the recycle bin to reflect the change
+      await loadDeletedCategories();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -63,7 +105,7 @@ export const useCategoryRecycleBin = () => {
    */
   const handleForceDelete = async (id: string) => {
     const category = deletedCategories.find(c => c.id === id);
-    
+
     if (!category) {
       toast({
         title: 'Error',
@@ -81,6 +123,8 @@ export const useCategoryRecycleBin = () => {
         title: 'Éxito',
         description: `La categoría "${category.name}" ha sido eliminada permanentemente`,
       });
+      // Reload the recycle bin to reflect the change
+      await loadDeletedCategories();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -130,6 +174,7 @@ export const useCategoryRecycleBin = () => {
     // Actions
     handleRestore,
     handleForceDelete,
+    loadDeletedCategories, // Export to allow manual reload
 
     // Utilities
     getDeletedCategory,

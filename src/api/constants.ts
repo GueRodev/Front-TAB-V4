@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   CATEGORIES: "/v1/categories",
   CATEGORY_DETAIL: (id: string | number) => `/v1/categories/${id}`,
   CATEGORIES_REORDER: "/v1/categories/reorder",
+  CATEGORIES_RECYCLE_BIN: "/v1/categories/recycle-bin",
   CATEGORY_RESTORE: (id: string | number) => `/v1/categories/${id}/restore`,
   CATEGORY_FORCE_DELETE: (id: string | number) => `/v1/categories/${id}/force`,
 
