@@ -1,6 +1,7 @@
 /**
  * Product Recycle Bin Hook
  * Manages deleted products with restore and permanent deletion
+ * ✅ Implements lazy loading - only loads when visible
  */
 
 import { useState, useEffect } from 'react';
@@ -8,10 +9,17 @@ import { useProducts } from '../contexts';
 import type { Product } from '../types';
 import { toast } from 'sonner';
 
-export const useProductRecycleBin = () => {
+interface UseProductRecycleBinOptions {
+  isVisible?: boolean; // For lazy loading - only load when tab is visible
+}
+
+export const useProductRecycleBin = (options?: UseProductRecycleBinOptions) => {
   const { getDeletedProducts, restoreProduct, forceDeleteProduct, loading } = useProducts();
   const [deletedProducts, setDeletedProducts] = useState<Product[]>([]);
   const [isLoadingDeleted, setIsLoadingDeleted] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const isVisible = options?.isVisible ?? false;
+
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     productId: string;
@@ -30,6 +38,7 @@ export const useProductRecycleBin = () => {
     try {
       const deleted = await getDeletedProducts();
       setDeletedProducts(deleted);
+      setHasLoadedOnce(true);
     } catch (error) {
       console.error('Error loading deleted products:', error);
       toast.error('Error al cargar productos eliminados');
@@ -38,10 +47,13 @@ export const useProductRecycleBin = () => {
     }
   };
 
-  // Load on mount
+  // Lazy loading: only load when visible for the first time
   useEffect(() => {
-    loadDeletedProducts();
-  }, []);
+    if (isVisible && !hasLoadedOnce) {
+      loadDeletedProducts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible]);
 
   // Open restore confirmation
   const openRestoreDialog = (product: Product) => {

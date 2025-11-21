@@ -13,6 +13,7 @@ const FeaturedProducts: React.FC = () => {
     handleToggleWishlist,
     isProductInWishlist,
     getCategorySlug,
+    categories,
   } = useProductOperations();
 
   const {
@@ -37,6 +38,7 @@ const FeaturedProducts: React.FC = () => {
     <>
       <FeaturedProductsSection
         products={featuredProducts}
+        categories={categories}
         onAddToCart={handleAddToCart}
         onToggleWishlist={handleToggleWishlist}
         isInWishlist={isProductInWishlist}

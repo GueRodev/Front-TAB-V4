@@ -13,6 +13,9 @@ interface WishlistProduct {
   image: string;
   price: number;
   category: string;
+  brand?: string | null;
+  subcategory?: string;
+  stock?: number;
 }
 
 interface WishlistGridProps {
@@ -35,7 +38,10 @@ export const WishlistGrid: React.FC<WishlistGridProps> = ({
           name={product.name}
           image={product.image}
           price={formatCurrency(product.price)}
+          brand={product.brand}
           category={product.category}
+          subcategory={product.subcategory}
+          stock={product.stock}
           isWishlisted={true}
           onToggleWishlist={(e) => onToggleWishlist(product, e)}
           onAddToCart={(e) => onAddToCart(product, e)}

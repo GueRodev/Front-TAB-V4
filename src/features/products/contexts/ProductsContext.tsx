@@ -18,6 +18,7 @@ interface ProductsContextType {
   forceDeleteProduct: (id: string) => Promise<void>;
   getDeletedProducts: () => Promise<Product[]>;
   adjustStock: (productId: string, dto: AdjustStockDto) => Promise<Product>;
+  toggleFeatured: (productId: string, isFeatured: boolean) => Promise<Product>;
   getProductsByCategory: (categoryId: string) => Product[];
   getProductsBySubcategory: (subcategoryId: string) => Product[]; // Deprecated: use getProductsByCategory
 }
@@ -166,20 +167,39 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const response = await productsService.adjustStock(productId, dto);
       const updatedProduct = response.data;
-      
+
       // Update local state
       setProducts(prev =>
         prev.map(product =>
           product.id === productId ? updatedProduct : product
         )
       );
-      
+
       return updatedProduct;
     } catch (error) {
       console.error('Error adjusting stock:', error);
       throw error;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleFeatured = async (productId: string, isFeatured: boolean): Promise<Product> => {
+    try {
+      const response = await productsService.toggleFeatured(productId, isFeatured);
+      const updatedProduct = response.data;
+
+      // Update local state
+      setProducts(prev =>
+        prev.map(product =>
+          product.id === productId ? updatedProduct : product
+        )
+      );
+
+      return updatedProduct;
+    } catch (error) {
+      console.error('Error toggling featured:', error);
+      throw error;
     }
   };
 
@@ -194,6 +214,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       forceDeleteProduct,
       getDeletedProducts,
       adjustStock,
+      toggleFeatured,
       getProductsByCategory,
       getProductsBySubcategory,
     }}>

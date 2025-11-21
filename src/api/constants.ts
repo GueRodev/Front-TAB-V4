@@ -21,8 +21,11 @@ export const API_ENDPOINTS = {
   // Products
   PRODUCTS: "/v1/products",
   PRODUCTS_FEATURED: "/v1/products/featured",
+  PRODUCTS_RECYCLE_BIN: "/v1/products/recycle-bin",
   PRODUCT_DETAIL: (id: string | number) => `/v1/products/${id}`,
   PRODUCT_STOCK: (id: string | number) => `/v1/products/${id}/stock`,
+  PRODUCT_STOCK_MOVEMENTS: (id: string | number) => `/v1/products/${id}/stock-movements`,
+  PRODUCT_FEATURED: (id: string | number) => `/v1/products/${id}/featured`,
   PRODUCT_RESTORE: (id: string | number) => `/v1/products/${id}/restore`,
   PRODUCT_FORCE_DELETE: (id: string | number) => `/v1/products/${id}/force`,
 

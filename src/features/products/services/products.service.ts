@@ -7,7 +7,7 @@
 import type { Product, CreateProductDto, UpdateProductDto, ProductFilters } from '../types/product.types';
 import type { AdjustStockDto } from '../types/stock-movement.types';
 import type { ApiResponse, PaginatedResponse } from '@/api/types';
-import { api } from '@/api';
+import { api, API_ENDPOINTS } from '@/api';
 import {
   transformLaravelProduct,
   transformLaravelProducts,
@@ -25,7 +25,7 @@ export const productsService = {
    * 🔗 LARAVEL: GET /api/v1/products (paginated)
    */
   async getAll(filters?: ProductFilters): Promise<PaginatedResponse<Product>> {
-    const response = await api.get('/products', { params: filters });
+    const response = await api.get(API_ENDPOINTS.PRODUCTS, { params: filters });
     return transformLaravelPaginatedProducts(response.data);
   },
 
@@ -34,7 +34,7 @@ export const productsService = {
    * 🔗 LARAVEL: GET /api/v1/products/featured
    */
   async getFeatured(): Promise<Product[]> {
-    const response = await api.get<any[]>('/products/featured');
+    const response = await api.get<any[]>(API_ENDPOINTS.PRODUCTS_FEATURED);
     return transformLaravelProducts(response.data);
   },
 
@@ -43,7 +43,7 @@ export const productsService = {
    * 🔗 LARAVEL: GET /api/v1/products/{id}
    */
   async getById(id: string): Promise<Product | null> {
-    const response = await api.get(`/products/${id}`);
+    const response = await api.get(API_ENDPOINTS.PRODUCT_DETAIL(id));
     return transformLaravelProduct(response.data);
   },
 
@@ -79,21 +79,21 @@ export const productsService = {
   async create(data: CreateProductDto): Promise<ApiResponse<Product>> {
     const formData = new FormData();
     const payload = transformToLaravelProductPayload(data);
-    
+
     // Append all fields
     Object.entries(payload).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
         formData.append(key, String(value));
       }
     });
-    
+
     // Append image if present
     if (data.image) {
       formData.append('image', data.image);
     }
-    
-    const response = await api.post<any>('/products', formData);
-    
+
+    const response = await api.post<any>(API_ENDPOINTS.PRODUCTS, formData);
+
     return {
       data: transformLaravelProduct(response.data.product),
       message: response.data.message,
@@ -109,24 +109,24 @@ export const productsService = {
   async update(id: string, data: UpdateProductDto): Promise<ApiResponse<Product>> {
     const formData = new FormData();
     const payload = transformToLaravelProductPayload(data);
-    
+
     // Append all fields
     Object.entries(payload).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
         formData.append(key, String(value));
       }
     });
-    
+
     // Append image if present
     if (data.image) {
       formData.append('image', data.image);
     }
-    
+
     // Laravel requires _method=PUT with FormData
     formData.append('_method', 'PUT');
-    
-    const response = await api.post<any>(`/products/${id}`, formData);
-    
+
+    const response = await api.post<any>(API_ENDPOINTS.PRODUCT_DETAIL(id), formData);
+
     return {
       data: transformLaravelProduct(response.data.product),
       message: response.data.message,
@@ -140,7 +140,7 @@ export const productsService = {
    * Response: { message }
    */
   async delete(id: string): Promise<ApiResponse<void>> {
-    const response = await api.delete<any>(`/products/${id}`);
+    const response = await api.delete<any>(API_ENDPOINTS.PRODUCT_DETAIL(id));
     return {
       data: undefined as void,
       message: response.data.message,
@@ -153,7 +153,7 @@ export const productsService = {
    * 🔗 LARAVEL: DELETE /api/v1/products/{id}/force
    */
   async forceDelete(id: string): Promise<ApiResponse<void>> {
-    const response = await api.delete<any>(`/products/${id}/force`);
+    const response = await api.delete<any>(API_ENDPOINTS.PRODUCT_FORCE_DELETE(id));
     return {
       data: undefined as void,
       message: response.data.message,
@@ -163,10 +163,10 @@ export const productsService = {
 
   /**
    * Get deleted products (recycle bin)
-   * 🔗 LARAVEL: GET /api/v1/products/deleted
+   * 🔗 LARAVEL: GET /api/v1/products/recycle-bin
    */
   async getDeleted(): Promise<ApiResponse<Product[]>> {
-    const response = await api.get<Product[]>('/products/deleted');
+    const response = await api.get<Product[]>(API_ENDPOINTS.PRODUCTS_RECYCLE_BIN);
     return {
       data: response.data.map(transformLaravelProduct),
       timestamp: new Date().toISOString(),
@@ -179,7 +179,7 @@ export const productsService = {
    * Response: { message, product }
    */
   async restore(id: string): Promise<ApiResponse<Product>> {
-    const response = await api.post<any>(`/products/${id}/restore`);
+    const response = await api.post<any>(API_ENDPOINTS.PRODUCT_RESTORE(id));
     return {
       data: transformLaravelProduct(response.data.product),
       message: response.data.message,
@@ -193,7 +193,23 @@ export const productsService = {
    * Response: { message, product }
    */
   async adjustStock(id: string, data: AdjustStockDto): Promise<ApiResponse<Product>> {
-    const response = await api.post<any>(`/products/${id}/stock`, data);
+    const response = await api.post<any>(API_ENDPOINTS.PRODUCT_STOCK(id), data);
+    return {
+      data: transformLaravelProduct(response.data.product),
+      message: response.data.message,
+      timestamp: new Date().toISOString(),
+    };
+  },
+
+  /**
+   * Toggle featured status
+   * 🔗 LARAVEL: PATCH /api/v1/products/{id}/featured
+   * Response: { message, product }
+   */
+  async toggleFeatured(id: string, isFeatured: boolean): Promise<ApiResponse<Product>> {
+    const response = await api.patch<any>(API_ENDPOINTS.PRODUCT_FEATURED(id), {
+      is_featured: isFeatured,
+    });
     return {
       data: transformLaravelProduct(response.data.product),
       message: response.data.message,

@@ -77,8 +77,8 @@ interface UseProductsAdminReturn {
   handleOpenAddDialog: () => void;
 }
 
-export const useProductsAdmin = (): UseProductsAdminReturn => {
-  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean } => {
+  const { products, loading, addProduct, updateProduct, deleteProduct, toggleFeatured } = useProducts();
   const { categories } = useCategories();
   const { addNotification } = useNotifications();
 
@@ -119,10 +119,10 @@ export const useProductsAdmin = (): UseProductsAdminReturn => {
     status: 'active'
   });
 
-  // Derived state - subcategories for form (deprecated but kept for compatibility)
+  // Derived state - subcategories (children) for selected category
   const availableSubcategories = categories.find(
     c => c.id === formData.category_id
-  )?.subcategories || [];
+  )?.children || [];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -278,11 +278,19 @@ export const useProductsAdmin = (): UseProductsAdminReturn => {
   const handleToggleFeatured = async (productId: string, is_featured: boolean) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      await updateProduct(productId, { is_featured });
-      toast({
-        title: is_featured ? "Producto destacado" : "Producto no destacado",
-        description: `${product.name} ${is_featured ? 'aparecerá' : 'no aparecerá'} en productos destacados`,
-      });
+      try {
+        await toggleFeatured(productId, is_featured);
+        toast({
+          title: is_featured ? "Producto destacado" : "Producto no destacado",
+          description: `${product.name} ${is_featured ? 'aparecerá' : 'no aparecerá'} en productos destacados`,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el estado destacado",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -294,7 +302,8 @@ export const useProductsAdmin = (): UseProductsAdminReturn => {
     // Products data
     products,
     categories,
-    
+    loading,
+
     // Filters (delegated to useProductFilters)
     searchQuery,
     setSearchQuery,
@@ -308,13 +317,13 @@ export const useProductsAdmin = (): UseProductsAdminReturn => {
     isAddDialogOpen,
     isEditDialogOpen,
     deleteProductDialog,
-    
+
     // Form state
     selectedImage,
     selectedProduct,
     formData,
     availableSubcategories,
-    
+
     // Handlers
     setIsAddDialogOpen,
     setIsEditDialogOpen,

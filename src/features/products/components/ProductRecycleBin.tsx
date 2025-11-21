@@ -1,6 +1,7 @@
 /**
  * Product Recycle Bin Component
  * Displays soft-deleted products with restore and permanent deletion
+ * ✅ Implements skeleton loading and lazy loading via props
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +32,26 @@ import { formatCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-export const ProductRecycleBin = () => {
+// Skeleton loader for table rows
+const TableRowSkeleton = () => (
+  <TableRow className="animate-pulse">
+    <TableCell><div className="h-12 w-12 bg-muted rounded" /></TableCell>
+    <TableCell><div className="space-y-2"><div className="h-4 bg-muted rounded w-32" /><div className="h-3 bg-muted rounded w-20" /></div></TableCell>
+    <TableCell><div className="h-4 bg-muted rounded w-20" /></TableCell>
+    <TableCell><div className="h-4 bg-muted rounded w-16" /></TableCell>
+    <TableCell><div className="h-4 bg-muted rounded w-10" /></TableCell>
+    <TableCell><div className="space-y-1"><div className="h-5 bg-muted rounded w-16" /><div className="h-3 bg-muted rounded w-20" /></div></TableCell>
+    <TableCell><div className="flex gap-2 justify-end"><div className="h-8 w-24 bg-muted rounded" /><div className="h-8 w-20 bg-muted rounded" /></div></TableCell>
+  </TableRow>
+);
+
+interface ProductRecycleBinProps {
+  recycleBinData?: ReturnType<typeof useProductRecycleBin>;
+}
+
+export const ProductRecycleBin = ({ recycleBinData }: ProductRecycleBinProps) => {
+  // Use provided data or fallback to hook (for backwards compatibility)
+  const hookData = useProductRecycleBin({ isVisible: !recycleBinData });
   const {
     deletedProducts,
     isLoadingDeleted,
@@ -42,7 +62,7 @@ export const ProductRecycleBin = () => {
     closeConfirmDialog,
     handleConfirm,
     refreshDeleted,
-  } = useProductRecycleBin();
+  } = recycleBinData || hookData;
 
   return (
     <>
@@ -67,9 +87,26 @@ export const ProductRecycleBin = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoadingDeleted ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Cargando productos eliminados...
+          {isLoadingDeleted && deletedProducts.length === 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Imagen</TableHead>
+                    <TableHead>Producto</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Precio</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Eliminado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[1, 2, 3].map((i) => (
+                    <TableRowSkeleton key={i} />
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : deletedProducts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

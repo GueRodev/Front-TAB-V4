@@ -1,15 +1,18 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ProductImage } from '@/components/common';
 
 interface ProductCardProps {
   id: string;
   name: string;
   image: string;
-  price: number | string; // Can accept both formatted string and number
+  price: number | string;
+  brand?: string | null;
   category?: string;
+  subcategory?: string;
+  stock?: number;
   badge?: 'new' | 'sale';
   isWishlisted?: boolean;
   onToggleWishlist?: (e: React.MouseEvent, productId: string) => void;
@@ -22,13 +25,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
   name,
   image,
   price,
+  brand,
   category,
+  subcategory,
+  stock,
   badge,
   isWishlisted = false,
   onToggleWishlist,
   onAddToCart,
   onProductClick,
 }) => {
+  const isOutOfStock = stock === 0;
+  const isLowStock = stock !== undefined && stock > 0 && stock <= 5;
   return (
     <div 
       className="bg-white rounded-lg overflow-hidden shadow-md group card-hover h-full relative"
@@ -68,43 +76,71 @@ const ProductCard: React.FC<ProductCardProps> = ({
             />
           </button>
         )}
-        {badge === 'new' && (
-          <span className="absolute top-4 left-4 px-2 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
-            Nuevo
-          </span>
-        )}
-        {badge === 'sale' && (
-          <span className="absolute top-4 left-4 px-2 py-1 text-xs font-semibold rounded-full bg-red-500 text-white">
-            Oferta
-          </span>
-        )}
+        {/* Badges de estado */}
+        <div className="absolute top-4 left-4 flex flex-col gap-1">
+          {badge === 'new' && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
+              Nuevo
+            </span>
+          )}
+          {badge === 'sale' && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-500 text-white">
+              Oferta
+            </span>
+          )}
+          {isOutOfStock && (
+            <Badge variant="destructive" className="text-xs">
+              Sin stock
+            </Badge>
+          )}
+          {isLowStock && (
+            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
+              Últimas {stock} unidades
+            </Badge>
+          )}
+        </div>
       </div>
-      
+
       <div className="p-4">
-        {category && (
-          <div className="flex items-center mb-2">
+        {/* Categoría y Subcategoría */}
+        <div className="flex items-center gap-1 mb-2 flex-wrap">
+          {category && (
             <span className="text-xs text-gray-500">{category}</span>
-          </div>
-        )}
-        
-        <div 
+          )}
+          {category && subcategory && (
+            <span className="text-xs text-gray-400">›</span>
+          )}
+          {subcategory && (
+            <span className="text-xs text-brand-orange">{subcategory}</span>
+          )}
+        </div>
+
+        {/* Nombre del producto */}
+        <div
           onClick={() => onProductClick?.(id)}
           className="block cursor-pointer"
         >
-          <h3 className="font-semibold text-gray-900 hover:text-brand-orange transition-colors mb-3 line-clamp-2">
+          <h3 className="font-semibold text-gray-900 hover:text-brand-orange transition-colors mb-1 line-clamp-2">
             {name}
           </h3>
         </div>
-        
-        <div className="flex justify-between items-center mt-4">
+
+        {/* Marca */}
+        {brand && (
+          <p className="text-xs text-gray-500 mb-2">{brand}</p>
+        )}
+
+        {/* Precio y botón agregar */}
+        <div className="flex justify-between items-center mt-3">
           <span className="font-bold text-lg">
-            {typeof price === 'number' ? `₡${price.toFixed(2)}` : price}
+            {typeof price === 'number' ? `₡${price.toLocaleString('es-CR', { minimumFractionDigits: 2 })}` : price}
           </span>
           {onAddToCart && (
             <Button
               onClick={(e) => onAddToCart(e, id)}
               size="sm"
-              className="bg-brand-darkBlue hover:bg-brand-orange text-white transition-colors flex items-center gap-1"
+              disabled={isOutOfStock}
+              className="bg-brand-darkBlue hover:bg-brand-orange text-white transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ShoppingCart size={16} />
               <Plus size={16} />

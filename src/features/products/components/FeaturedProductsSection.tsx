@@ -8,9 +8,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { ProductGrid } from './ProductGrid';
 import type { Product } from '../types';
+import type { Category } from '@/features/categories';
 
 interface FeaturedProductsSectionProps {
   products: Product[];
+  categories?: Category[];
   onAddToCart: (product: Product, e?: React.MouseEvent) => void;
   onToggleWishlist: (product: Product, e?: React.MouseEvent) => void;
   isInWishlist: (productId: string) => boolean;
@@ -20,6 +22,7 @@ interface FeaturedProductsSectionProps {
 
 export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
   products,
+  categories,
   onAddToCart,
   onToggleWishlist,
   isInWishlist,
@@ -51,6 +54,7 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = (
 
         <ProductGrid
           products={products}
+          categories={categories}
           onAddToCart={onAddToCart}
           onToggleWishlist={onToggleWishlist}
           isInWishlist={isInWishlist}

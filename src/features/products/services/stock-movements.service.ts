@@ -1,10 +1,10 @@
 /**
  * Stock Movements Service
  * Manages stock tracking, reservations, and inventory history
- * Laravel Integration Ready with localStorage fallback
+ * ✅ Fully integrated with Laravel backend
  */
 
-import { api, STORAGE_KEYS } from '@/api';
+import { api, API_ENDPOINTS } from '@/api';
 import type {
   StockMovement,
   StockAvailability,
@@ -33,19 +33,21 @@ export interface StockMovementFilters {
 class StockMovementsService {
   /**
    * Get stock movements for a specific product
+   * 🔗 LARAVEL: GET /api/v1/products/{id}/stock-movements
    */
   async getByProduct(productId: string): Promise<StockMovement[]> {
     const response = await api.get<StockMovement[]>(
-      `/products/${productId}/stock-movements`
+      API_ENDPOINTS.PRODUCT_STOCK_MOVEMENTS(productId)
     );
     return response.data.map(transformLaravelStockMovement);
   }
 
   /**
    * Get all stock movements with optional filters
+   * ⏳ TODO: Implement in Orders feature
    */
   async getAll(filters?: StockMovementFilters): Promise<StockMovement[]> {
-    const response = await api.get<StockMovement[]>('/stock-movements', {
+    const response = await api.get<StockMovement[]>('/v1/stock-movements', {
       params: filters,
     });
     return response.data.map(transformLaravelStockMovement);
@@ -54,12 +56,13 @@ class StockMovementsService {
   /**
    * Check stock availability for multiple items
    * Used before order creation to validate stock
+   * ⏳ TODO: Implement in Orders feature
    */
   async checkAvailability(
     items: Array<{ product_id: string; quantity: number }>
   ): Promise<StockAvailability> {
     const response = await api.post<StockAvailability>(
-      '/stock-movements/check-availability',
+      '/v1/stock-movements/check-availability',
       { items }
     );
     return response.data;
@@ -68,51 +71,44 @@ class StockMovementsService {
   /**
    * Reserve stock for a pending order
    * Creates 'reserva' movements for each item
+   * ⏳ TODO: Implement in Orders feature
    */
   async reserveStock(dto: ReserveStockDto): Promise<void> {
-    await api.post('/stock-movements/reserve', dto);
+    await api.post('/v1/stock-movements/reserve', dto);
   }
 
   /**
    * Confirm sale and deduct real stock
    * Creates 'venta' movements and updates product stock
+   * ⏳ TODO: Implement in Orders feature
    */
   async confirmSale(orderId: string): Promise<void> {
-    await api.post(`/stock-movements/confirm-sale/${orderId}`);
+    await api.post(`/v1/stock-movements/confirm-sale/${orderId}`);
   }
 
   /**
    * Cancel reservation and release stock
    * Creates 'cancelacion_reserva' movements
+   * ⏳ TODO: Implement in Orders feature
    */
   async cancelReservation(orderId: string): Promise<void> {
-    await api.post(`/stock-movements/cancel-reservation/${orderId}`);
+    await api.post(`/v1/stock-movements/cancel-reservation/${orderId}`);
   }
 
   /**
    * Manual stock adjustment
    * Creates 'entrada', 'salida', or 'ajuste' movement
+   * 🔗 LARAVEL: POST /api/v1/products/{id}/stock
    */
   async adjustStock(
     productId: string,
     dto: AdjustStockDto
   ): Promise<StockMovement> {
     const response = await api.post<StockMovement>(
-      `/products/${productId}/stock`,
+      API_ENDPOINTS.PRODUCT_STOCK(productId),
       dto
     );
     return transformLaravelStockMovement(response.data);
-  }
-
-  // Helper methods for localStorage (kept for type compatibility)
-  private getLocalProducts(): any[] {
-    const stored = localStorage.getItem(STORAGE_KEYS.products);
-    return stored ? JSON.parse(stored) : [];
-  }
-
-  private getLocalOrders(): any[] {
-    const stored = localStorage.getItem(STORAGE_KEYS.orders);
-    return stored ? JSON.parse(stored) : [];
   }
 }
 

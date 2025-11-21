@@ -102,7 +102,10 @@ const CategoryPage: React.FC = () => {
                   name={product.name}
                   price={formatCurrency(product.price)}
                   image={product.image_url || ''}
+                  brand={product.brand}
                   category={currentCategory.name}
+                  subcategory={currentSubcategory?.name}
+                  stock={product.stock}
                   isWishlisted={isProductInWishlist(product.id)}
                   onToggleWishlist={handleWishlistToggle}
                   onAddToCart={handleCartAdd}

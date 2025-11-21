@@ -1,15 +1,17 @@
 /**
  * Admin Products Page
  * Manages product inventory with CRUD operations
+ * ✅ Implements lazy loading and skeleton states
  */
 
+import { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar, AdminHeader } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Package, Trash2 } from 'lucide-react';
-import { useProductsAdmin, useStockManagement } from '@/features/products';
+import { useProductsAdmin, useStockManagement, useProductRecycleBin } from '@/features/products';
 import {
   ProductsListAdmin,
   ProductFormDialog,
@@ -27,11 +29,15 @@ import {
 } from '@/components/ui/dialog';
 
 const AdminProducts = () => {
+  // Track which tab is active for lazy loading
+  const [activeTab, setActiveTab] = useState('active');
+
   const {
     // Products data
     categories,
     filteredProducts,
     filterSummary,
+    loading,
 
     // Filters
     searchQuery,
@@ -75,6 +81,9 @@ const AdminProducts = () => {
     openHistoryDialog,
     closeHistoryDialog,
   } = useStockManagement();
+
+  // Lazy loading for recycle bin - only load when tab is visible
+  const recycleBinData = useProductRecycleBin({ isVisible: activeTab === 'deleted' });
 
   const filterCount = [searchQuery, selectedCategory].filter(Boolean).length;
 
@@ -125,7 +134,7 @@ const AdminProducts = () => {
               </Card>
 
               {/* Products Tabs */}
-              <Tabs defaultValue="active" className="w-full">
+              <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto sm:mx-0">
                   <TabsTrigger value="active" className="flex items-center gap-2">
                     <Package className="h-4 w-4" />
@@ -147,7 +156,7 @@ const AdminProducts = () => {
                           Productos ({filteredProducts.length})
                         </h3>
                       </div>
-                      
+
                       <ProductsListAdmin
                         products={filteredProducts}
                         categories={categories}
@@ -156,13 +165,14 @@ const AdminProducts = () => {
                         onToggleFeatured={handleToggleFeatured}
                         onAdjustStock={openAdjustStockDialog}
                         onViewHistory={openHistoryDialog}
+                        loading={loading}
                       />
                     </CardContent>
                   </Card>
                 </TabsContent>
 
                 <TabsContent value="deleted" className="mt-4">
-                  <ProductRecycleBin />
+                  <ProductRecycleBin recycleBinData={recycleBinData} />
                 </TabsContent>
               </Tabs>
             </div>

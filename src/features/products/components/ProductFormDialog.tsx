@@ -4,6 +4,7 @@
  * Updated for Laravel backend compatibility
  */
 
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -49,12 +50,54 @@ export const ProductFormDialog = ({
   formData,
   setFormData,
   selectedImage,
-  availableSubcategories,
   categories,
   onSubmit,
   onImageUpload,
   onRemoveImage
 }: ProductFormDialogProps) => {
+  // Track selected parent category separately for UI
+  const [selectedParentId, setSelectedParentId] = useState<string>('');
+
+  // Find parent category ID from current category_id (handles both parent and child)
+  const findParentCategoryId = (categoryId: string): string => {
+    // Check if it's a parent category
+    const isParent = categories.some(c => c.id === categoryId);
+    if (isParent) return categoryId;
+
+    // Check if it's a child (subcategory)
+    for (const cat of categories) {
+      if (cat.children?.some(child => child.id === categoryId)) {
+        return cat.id;
+      }
+    }
+    return categoryId;
+  };
+
+  // Get subcategories for selected parent
+  const subcategories = useMemo(() => {
+    const parent = categories.find(c => c.id === selectedParentId);
+    return parent?.children || [];
+  }, [categories, selectedParentId]);
+
+  // Initialize parent category when editing or when category_id changes
+  useEffect(() => {
+    if (formData.category_id) {
+      const parentId = findParentCategoryId(formData.category_id);
+      setSelectedParentId(parentId);
+    }
+  }, [formData.category_id, categories]);
+
+  // Handle parent category change
+  const handleParentCategoryChange = (parentId: string) => {
+    setSelectedParentId(parentId);
+    // Set to parent category by default, user can select subcategory after
+    setFormData({ ...formData, category_id: parentId });
+  };
+
+  // Check if current category_id is a subcategory
+  const selectedSubcategoryId = subcategories.find(
+    sub => sub.id === formData.category_id
+  )?.id || '';
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -95,11 +138,8 @@ export const ProductFormDialog = ({
               <div>
                 <Label htmlFor="category_id">Categoría *</Label>
                 <Select
-                  value={formData.category_id}
-                  onValueChange={(value) => setFormData({ 
-                    ...formData, 
-                    category_id: value
-                  })}
+                  value={selectedParentId}
+                  onValueChange={handleParentCategoryChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar categoría" />
@@ -115,14 +155,42 @@ export const ProductFormDialog = ({
               </div>
 
               <div>
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  placeholder="Ej: LEGO-75192"
-                />
+                <Label htmlFor="subcategory">Subcategoría</Label>
+                <Select
+                  value={selectedSubcategoryId}
+                  onValueChange={(value) => {
+                    if (value) {
+                      setFormData({ ...formData, category_id: value });
+                    }
+                  }}
+                  disabled={subcategories.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      subcategories.length === 0
+                        ? "Sin subcategorías"
+                        : "Seleccionar subcategoría (opcional)"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subcategories.map((sub) => (
+                      <SelectItem key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                placeholder="Ej: LEGO-75192"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
