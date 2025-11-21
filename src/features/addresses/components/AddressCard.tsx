@@ -32,7 +32,7 @@ export const AddressCard: React.FC<AddressCardProps> = ({
   const getIcon = () => {
     switch (address.label.toLowerCase()) {
       case 'casa': return <Home size={18} />;
-      case 'trabajo': case 'oficina': return <Briefcase size={18} />;
+      case 'trabajo': return <Briefcase size={18} />;
       default: return <MapPin size={18} />;
     }
   };

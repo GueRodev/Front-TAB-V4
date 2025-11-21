@@ -4,3 +4,4 @@
  */
 
 export { useAdminProfile } from './useAdminProfile';
+export { useProfileEditor } from './useProfileEditor';

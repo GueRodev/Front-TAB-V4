@@ -1,46 +1,61 @@
 /**
- * useAdminProfile Hook
- * ✅ INTEGRADO CON LARAVEL BACKEND
- * Manages admin profile state and operations
- *
- * @deprecated Use useProfileEditor instead for new implementations
- * This hook is kept for backward compatibility
+ * useProfileEditor Hook
+ * ✅ Unified profile editor for Admin, Moderador, and Cliente users
+ * Manages profile state, validation, and operations
  */
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { adminProfileSchema, type AdminProfileFormData } from '../validations';
+import {
+  profileSchema,
+  profileSchemaWithPhone,
+  type ProfileFormData,
+  type ProfileFormDataWithPhone
+} from '../validations';
 import { profileService } from '../services';
 import type { UserProfile } from '@/features/auth';
 
-interface UseAdminProfileReturn {
+interface UseProfileEditorConfig {
+  includePhone?: boolean;
+  includeAvatar?: boolean;
+  onSuccess?: (user: UserProfile) => void;
+}
+
+type FormData = ProfileFormData | ProfileFormDataWithPhone;
+
+interface UseProfileEditorReturn {
   isEditing: boolean;
   avatarFile: File | null;
   avatarPreview: string | null;
-  formData: AdminProfileFormData;
+  formData: FormData;
   isUploading: boolean;
   errors: Record<string, string>;
   handleEdit: () => void;
   handleCancel: () => void;
   handleSave: () => Promise<void>;
   handleAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleFieldChange: (field: keyof AdminProfileFormData, value: string) => void;
+  handleFieldChange: (field: keyof FormData, value: string) => void;
 }
 
-export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn => {
+export const useProfileEditor = (
+  user: UserProfile | null,
+  config: UseProfileEditorConfig = {}
+): UseProfileEditorReturn => {
+  const { includePhone = false, includeAvatar = true, onSuccess } = config;
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  const [formData, setFormData] = useState<AdminProfileFormData>({
+
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
+    ...(includePhone ? { phone: '' } : {}),
     password: '',
     password_confirmation: '',
-  });
+  } as FormData);
 
   // Initialize form data from user
   useEffect(() => {
@@ -48,11 +63,12 @@ export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn
       setFormData({
         name: user.name,
         email: user.email,
+        ...(includePhone ? { phone: (user as any).phone || '' } : {}),
         password: '',
         password_confirmation: '',
-      });
+      } as FormData);
     }
-  }, [user]);
+  }, [user, includePhone]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -64,19 +80,22 @@ export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn
     setAvatarFile(null);
     setAvatarPreview(null);
     setErrors({});
-    
+
     // Restore original data
     if (user) {
       setFormData({
         name: user.name,
         email: user.email,
+        ...(includePhone ? { phone: (user as any).phone || '' } : {}),
         password: '',
         password_confirmation: '',
-      });
+      } as FormData);
     }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!includeAvatar) return;
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -110,9 +129,9 @@ export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn
     reader.readAsDataURL(file);
   };
 
-  const handleFieldChange = (field: keyof AdminProfileFormData, value: string) => {
+  const handleFieldChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear error for this field
     if (errors[field]) {
       setErrors(prev => {
@@ -126,9 +145,10 @@ export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn
   const handleSave = async () => {
     setErrors({});
 
-    // Validate form data
-    const result = adminProfileSchema.safeParse(formData);
-    
+    // Validate form data with appropriate schema
+    const schema = includePhone ? profileSchemaWithPhone : profileSchema;
+    const result = schema.safeParse(formData);
+
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((error) => {
@@ -147,17 +167,18 @@ export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn
 
     setIsUploading(true);
     try {
-      // Upload avatar if changed
+      // Upload avatar if changed (only if enabled and file selected)
       let avatarUrl: string | undefined;
-      if (avatarFile) {
+      if (includeAvatar && avatarFile) {
         const avatarResponse = await profileService.uploadAvatar(avatarFile);
         avatarUrl = avatarResponse.data.avatarUrl;
       }
 
-      // Update profile using real backend service
+      // Update profile
       const updateData = {
         name: formData.name,
         email: formData.email,
+        ...(includePhone && 'phone' in formData ? { phone: formData.phone } : {}),
         ...(formData.password && formData.password.length > 0
           ? {
               password: formData.password,
@@ -182,6 +203,11 @@ export const useAdminProfile = (user: UserProfile | null): UseAdminProfileReturn
         password: '',
         password_confirmation: ''
       }));
+
+      // Call success callback with updated user
+      if (onSuccess) {
+        onSuccess(response.data);
+      }
     } catch (error: any) {
       toast({
         title: 'Error',

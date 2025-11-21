@@ -18,6 +18,7 @@ interface AuthContextType extends AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
+  updateUser: (user: UserProfile) => void;
   isAdmin: () => boolean;
   isClient: () => boolean;
   hasPermission: (permission: string) => boolean;
@@ -175,6 +176,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   /**
+   * Update user data in state and localStorage
+   * Used after profile updates
+   */
+  const updateUser = (user: UserProfile) => {
+    localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+    setState(prev => ({
+      ...prev,
+      user,
+    }));
+  };
+
+  /**
    * Verifica si el usuario tiene rol de administrador
    * Incluye tanto 'admin' (Super Admin) como 'moderador' (Moderador)
    *
@@ -224,6 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         logoutAll,
+        updateUser,
         isAdmin,
         isClient,
         hasPermission,

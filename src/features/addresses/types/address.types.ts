@@ -6,7 +6,7 @@
 export interface Address {
   id: string;
   user_id: string;
-  label: string; // "Casa", "Trabajo", "Oficina"
+  label: string; // "Casa", "Trabajo", "Otro"
   province: string;
   canton: string;
   district: string;

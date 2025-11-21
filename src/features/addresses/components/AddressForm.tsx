@@ -1,6 +1,7 @@
 /**
  * AddressForm Component
- * Form for creating/editing addresses
+ * ✅ MEJORADO CON LocationSelector
+ * Form for creating/editing addresses with CR locations integration
  */
 
 import React, { useState } from 'react';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LocationSelector } from '@/features/locations-cr';
 import type { Address } from '../types';
 
 interface AddressFormProps {
@@ -37,6 +39,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({ address, onSubmit, onC
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Label Selection */}
       <div>
         <Label htmlFor="label">Etiqueta *</Label>
         <Select value={formData.label} onValueChange={(value) => handleChange('label', value)}>
@@ -46,45 +49,24 @@ export const AddressForm: React.FC<AddressFormProps> = ({ address, onSubmit, onC
           <SelectContent>
             <SelectItem value="Casa">Casa</SelectItem>
             <SelectItem value="Trabajo">Trabajo</SelectItem>
-            <SelectItem value="Oficina">Oficina</SelectItem>
             <SelectItem value="Otro">Otro</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div>
-        <Label htmlFor="province">Provincia *</Label>
-        <Input
-          id="province"
-          value={formData.province}
-          onChange={(e) => handleChange('province', e.target.value)}
-          required
-          placeholder="San José"
-        />
-      </div>
+      {/* Location Selection - Using LocationSelector Component */}
+      <LocationSelector
+        province={formData.province}
+        canton={formData.canton}
+        district={formData.district}
+        onProvinceChange={(value) => handleChange('province', value)}
+        onCantonChange={(value) => handleChange('canton', value)}
+        onDistrictChange={(value) => handleChange('district', value)}
+        showLabels={true}
+        required={true}
+      />
 
-      <div>
-        <Label htmlFor="canton">Cantón *</Label>
-        <Input
-          id="canton"
-          value={formData.canton}
-          onChange={(e) => handleChange('canton', e.target.value)}
-          required
-          placeholder="Central"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="district">Distrito *</Label>
-        <Input
-          id="district"
-          value={formData.district}
-          onChange={(e) => handleChange('district', e.target.value)}
-          required
-          placeholder="Carmen"
-        />
-      </div>
-
+      {/* Exact Address */}
       <div>
         <Label htmlFor="address">Dirección exacta *</Label>
         <Input
@@ -93,9 +75,11 @@ export const AddressForm: React.FC<AddressFormProps> = ({ address, onSubmit, onC
           onChange={(e) => handleChange('address', e.target.value)}
           required
           placeholder="Calle, número, referencias..."
+          minLength={10}
         />
       </div>
 
+      {/* Action Buttons */}
       <div className="flex gap-3 pt-4">
         <Button type="submit" className="flex-1 bg-brand-orange hover:bg-brand-orange/90">
           {address ? 'Actualizar' : 'Guardar'} Dirección
