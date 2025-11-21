@@ -105,7 +105,9 @@ export const CategoryRecycleBin: React.FC<CategoryRecycleBinProps> = ({
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Al eliminar permanentemente una categoría, sus productos serán reasignados a "Otros"
+            <strong>Restaurar:</strong> Los productos originales volverán automáticamente a esta categoría.
+            <br />
+            <strong>Eliminar permanentemente:</strong> Los productos pendientes de restaurar quedarán en "Otros".
           </AlertDescription>
         </Alert>
 
@@ -138,10 +140,19 @@ export const CategoryRecycleBin: React.FC<CategoryRecycleBinProps> = ({
                     {category.products_count !== undefined && (
                       <div className="flex items-center gap-1">
                         <Package className="h-4 w-4" />
-                        <span>{category.products_count} productos</span>
+                        <span>{category.products_count} productos actuales</span>
                       </div>
                     )}
-                    
+
+                    {category.restorable_products_count !== undefined && category.restorable_products_count > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Package className="h-4 w-4 text-green-600" />
+                        <span className="text-green-600 font-medium">
+                          {category.restorable_products_count} productos serán restaurados
+                        </span>
+                      </div>
+                    )}
+
                     {category.subcategories && category.subcategories.length > 0 && (
                       <div className="flex items-center gap-1">
                         <span>{category.subcategories.length} subcategorías</span>

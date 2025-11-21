@@ -23,7 +23,8 @@ export interface Category {
   children?: Category[];         // Changed from subcategories to children
   subcategories?: Subcategory[]; // DEPRECATED - kept for backward compatibility
   products_count?: number;       // Product counter for UI
-  
+  restorable_products_count?: number; // Products that will be restored (NEW)
+
   // Soft delete (NEW - Laravel integration)
   deleted_at?: string | null;    // For recycle bin functionality
   
