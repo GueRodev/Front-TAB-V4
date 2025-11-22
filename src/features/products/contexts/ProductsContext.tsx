@@ -5,14 +5,16 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product, AdjustStockDto } from '../types';
+import type { Product, AdjustStockDto, CreateProductDto, UpdateProductDto } from '../types';
 import { productsService } from '../services';
+import { STORAGE_KEYS } from '@/config';
 
 interface ProductsContextType {
   products: Product[];
   loading: boolean;
-  addProduct: (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>) => Promise<Product>;
-  updateProduct: (id: string, product: Partial<Product>) => Promise<Product>;
+  deletedCount: number;
+  addProduct: (product: CreateProductDto) => Promise<Product>;
+  updateProduct: (id: string, product: UpdateProductDto) => Promise<Product>;
   deleteProduct: (id: string) => Promise<void>;
   restoreProduct: (id: string) => Promise<Product>;
   forceDeleteProduct: (id: string) => Promise<void>;
@@ -28,14 +30,22 @@ const ProductsContext = createContext<ProductsContextType | undefined>(undefined
 export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletedCount, setDeletedCount] = useState(0);
 
-  // Load products on mount
+  // Load products and deleted count on mount
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
       try {
         const result = await productsService.getAll();
         setProducts(result.data); // Extract data from paginated response
+
+        // Only load deleted count if user is authenticated (has token)
+        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        if (token) {
+          const deletedResult = await productsService.getDeleted();
+          setDeletedCount(deletedResult.data.length);
+        }
       } catch (error) {
         console.error('Error loading products:', error);
       } finally {
@@ -45,7 +55,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     loadProducts();
   }, []);
 
-  const addProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>): Promise<Product> => {
+  const addProduct = async (productData: CreateProductDto): Promise<Product> => {
     setLoading(true);
     try {
       // Call service to persist
@@ -64,7 +74,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const updateProduct = async (id: string, productData: Partial<Product>): Promise<Product> => {
+  const updateProduct = async (id: string, productData: UpdateProductDto): Promise<Product> => {
     setLoading(true);
     try {
       // Call service to persist
@@ -92,9 +102,12 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       // Call service to persist
       await productsService.delete(id);
-      
+
       // Update local state
       setProducts(prev => prev.filter(product => product.id !== id));
+
+      // Increment deleted count
+      setDeletedCount(prev => prev + 1);
     } catch (error) {
       console.error('Error deleting product:', error);
       throw error;
@@ -121,10 +134,13 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const response = await productsService.restore(id);
       const restoredProduct = response.data;
-      
+
       // Add back to local state
       setProducts(prev => [...prev, restoredProduct]);
-      
+
+      // Decrement deleted count
+      setDeletedCount(prev => Math.max(0, prev - 1));
+
       return restoredProduct;
     } catch (error) {
       console.error('Error restoring product:', error);
@@ -138,9 +154,12 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLoading(true);
     try {
       await productsService.forceDelete(id);
-      
+
       // Remove from local state (if exists)
       setProducts(prev => prev.filter(product => product.id !== id));
+
+      // Decrement deleted count
+      setDeletedCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error force deleting product:', error);
       throw error;
@@ -207,6 +226,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <ProductsContext.Provider value={{
       products,
       loading,
+      deletedCount,
       addProduct,
       updateProduct,
       deleteProduct,

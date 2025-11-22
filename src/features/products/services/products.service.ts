@@ -92,7 +92,11 @@ export const productsService = {
       formData.append('image', data.image);
     }
 
-    const response = await api.post<any>(API_ENDPOINTS.PRODUCTS, formData);
+    const response = await api.post<any>(API_ENDPOINTS.PRODUCTS, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
     return {
       data: transformLaravelProduct(response.data.product),
@@ -125,7 +129,11 @@ export const productsService = {
     // Laravel requires _method=PUT with FormData
     formData.append('_method', 'PUT');
 
-    const response = await api.post<any>(API_ENDPOINTS.PRODUCT_DETAIL(id), formData);
+    const response = await api.post<any>(API_ENDPOINTS.PRODUCT_DETAIL(id), formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
     return {
       data: transformLaravelProduct(response.data.product),

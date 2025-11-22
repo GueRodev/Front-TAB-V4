@@ -3,13 +3,47 @@ import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { Header, Footer, DecorativeBackground } from '@/components/layout';
 import { useWishlistPage, WishlistGrid, EmptyWishlist } from "@/features/wishlist";
+import { useProductModal, ProductDetailModal } from "@/features/products";
 
 /**
  * Wishlist Page
  * Uses business logic hooks and presentational components
  */
 const Wishlist: React.FC = () => {
-  const { wishlist, itemCount, handleToggleWishlist, handleAddToCart } = useWishlistPage();
+  const {
+    wishlist,
+    itemCount,
+    handleToggleWishlist,
+    handleAddToCart,
+    findProductById,
+    isProductInWishlist
+  } = useWishlistPage();
+
+  const {
+    isModalOpen,
+    selectedProduct,
+    quantity,
+    openProductModal,
+    closeProductModal,
+    setQuantity,
+    handleAddToCartFromModal,
+    handleToggleWishlistFromModal,
+    isProductInWishlist: isModalProductInWishlist,
+  } = useProductModal({
+    onAddToCart: (product) => handleAddToCart(product),
+    onToggleWishlist: (product) => handleToggleWishlist(product),
+    isInWishlist: isProductInWishlist,
+  });
+
+  /**
+   * Handle product click - find full product and open modal
+   */
+  const handleProductClick = (wishlistProduct: any) => {
+    const fullProduct = findProductById(wishlistProduct.id);
+    if (fullProduct) {
+      openProductModal(fullProduct);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -52,12 +86,29 @@ const Wishlist: React.FC = () => {
           {itemCount === 0 ? (
             <EmptyWishlist />
           ) : (
-            <WishlistGrid products={wishlist} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} />
+            <WishlistGrid
+              products={wishlist}
+              onAddToCart={handleAddToCart}
+              onToggleWishlist={handleToggleWishlist}
+              onProductClick={handleProductClick}
+            />
           )}
         </div>
       </main>
 
       <Footer />
+
+      <ProductDetailModal
+        product={selectedProduct}
+        open={isModalOpen}
+        onOpenChange={closeProductModal}
+        onAddToCart={handleAddToCartFromModal}
+        onToggleWishlist={handleToggleWishlistFromModal}
+        isInWishlist={isModalProductInWishlist}
+        categoryName={selectedProduct?.category?.name}
+        quantity={quantity}
+        onQuantityChange={setQuantity}
+      />
     </div>
   );
 };

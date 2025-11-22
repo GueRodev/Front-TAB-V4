@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Category, Subcategory, CreateCategoryDto, UpdateCategoryDto, CreateSubcategoryDto, UpdateSubcategoryDto } from '../types';
 import { categoriesService } from '../services';
+import { STORAGE_KEYS } from '@/config';
 
 // Re-export types for backward compatibility
 export type { Category, Subcategory } from '../types';
@@ -90,7 +91,11 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Load categories from API on mount
   useEffect(() => {
     syncWithAPI();
-    refreshDeletedCount(); // Pre-load deleted count for badge
+    // Only fetch recycle bin count if user is authenticated (has token)
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    if (token) {
+      refreshDeletedCount(); // Pre-load deleted count for badge
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -4,8 +4,6 @@
  */
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import { ProductGrid } from './ProductGrid';
 import type { Product } from '../types';
 import type { Category } from '@/features/categories';
@@ -36,20 +34,11 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = (
   return (
     <section className="py-16 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Productos Destacados</h2>
-            <p className="text-muted-foreground">
-              Descubre nuestra selección especial de productos
-            </p>
-          </div>
-          <Link
-            to="/category/all"
-            className="flex items-center gap-2 text-primary hover:underline"
-          >
-            Ver todos
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold mb-2">Productos Destacados</h2>
+          <p className="text-muted-foreground">
+            Descubre nuestra selección especial de productos
+          </p>
         </div>
 
         <ProductGrid

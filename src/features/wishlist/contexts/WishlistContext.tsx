@@ -7,13 +7,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { STORAGE_KEYS } from '@/config';
 
-// Simplified Product interface for Wishlist
+// Product interface for Wishlist (extended with optional fields)
 export interface WishlistProduct {
   id: string;
   name: string;
   image: string;
   price: number;
   category: string;
+  brand?: string | null;
+  subcategory?: string;
+  stock?: number;
 }
 
 interface WishlistContextType {

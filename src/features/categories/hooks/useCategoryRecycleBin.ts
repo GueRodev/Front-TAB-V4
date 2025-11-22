@@ -23,6 +23,19 @@ export const useCategoryRecycleBin = (options?: UseCategoryRecycleBinOptions) =>
   const [deletedCategories, setDeletedCategories] = useState<Category[]>([]);
   const isVisible = options?.isVisible;
 
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    categoryId: string;
+    categoryName: string;
+    action: 'restore' | 'force-delete';
+  }>({
+    open: false,
+    categoryId: '',
+    categoryName: '',
+    action: 'restore',
+  });
+
   /**
    * Load deleted categories from API on mount and when visibility changes
    */
@@ -66,28 +79,53 @@ export const useCategoryRecycleBin = (options?: UseCategoryRecycleBinOptions) =>
   const deletedCount = deletedCategories.length;
 
   /**
-   * Restore a deleted category
+   * Open restore confirmation dialog
    */
-  const handleRestore = async (id: string) => {
-    const category = deletedCategories.find(c => c.id === id);
+  const openRestoreDialog = (category: Category) => {
+    setConfirmDialog({
+      open: true,
+      categoryId: category.id,
+      categoryName: category.name,
+      action: 'restore',
+    });
+  };
 
-    if (!category) {
-      toast({
-        title: 'Error',
-        description: 'Categoría no encontrada',
-        variant: 'destructive',
-      });
-      return;
-    }
+  /**
+   * Open force delete confirmation dialog
+   */
+  const openForceDeleteDialog = (category: Category) => {
+    setConfirmDialog({
+      open: true,
+      categoryId: category.id,
+      categoryName: category.name,
+      action: 'force-delete',
+    });
+  };
 
+  /**
+   * Close confirmation dialog
+   */
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      open: false,
+      categoryId: '',
+      categoryName: '',
+      action: 'restore',
+    });
+  };
+
+  /**
+   * Confirm restore action
+   */
+  const confirmRestore = async () => {
     setIsLoading(true);
     try {
-      await restoreCategory(id);
+      await restoreCategory(confirmDialog.categoryId);
       toast({
         title: 'Éxito',
-        description: `La categoría "${category.name}" ha sido restaurada exitosamente`,
+        description: `La categoría "${confirmDialog.categoryName}" ha sido restaurada exitosamente`,
       });
-      // Reload the recycle bin to reflect the change
+      closeConfirmDialog();
       await loadDeletedCategories();
     } catch (error: any) {
       toast({
@@ -101,29 +139,17 @@ export const useCategoryRecycleBin = (options?: UseCategoryRecycleBinOptions) =>
   };
 
   /**
-   * Permanently delete a category (force delete)
+   * Confirm force delete action
    */
-  const handleForceDelete = async (id: string) => {
-    const category = deletedCategories.find(c => c.id === id);
-
-    if (!category) {
-      toast({
-        title: 'Error',
-        description: 'Categoría no encontrada',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Confirmation is handled by parent component
+  const confirmForceDelete = async () => {
     setIsLoading(true);
     try {
-      await forceDeleteCategory(id);
+      await forceDeleteCategory(confirmDialog.categoryId);
       toast({
         title: 'Éxito',
-        description: `La categoría "${category.name}" ha sido eliminada permanentemente`,
+        description: `La categoría "${confirmDialog.categoryName}" ha sido eliminada permanentemente`,
       });
-      // Reload the recycle bin to reflect the change
+      closeConfirmDialog();
       await loadDeletedCategories();
     } catch (error: any) {
       toast({
@@ -133,6 +159,17 @@ export const useCategoryRecycleBin = (options?: UseCategoryRecycleBinOptions) =>
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  /**
+   * Handle confirm action based on dialog action type
+   */
+  const handleConfirm = async () => {
+    if (confirmDialog.action === 'restore') {
+      await confirmRestore();
+    } else {
+      await confirmForceDelete();
     }
   };
 
@@ -171,10 +208,15 @@ export const useCategoryRecycleBin = (options?: UseCategoryRecycleBinOptions) =>
     expiringCategories,
     isLoading,
 
+    // Confirmation dialog
+    confirmDialog,
+    openRestoreDialog,
+    openForceDeleteDialog,
+    closeConfirmDialog,
+    handleConfirm,
+
     // Actions
-    handleRestore,
-    handleForceDelete,
-    loadDeletedCategories, // Export to allow manual reload
+    loadDeletedCategories,
 
     // Utilities
     getDeletedCategory,

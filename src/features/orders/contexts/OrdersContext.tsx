@@ -9,6 +9,7 @@ import { ordersService } from '../services';
 import { stockMovementsService } from '@/features/products/services';
 import type { Order, OrderStatus, OrderType } from '../types';
 import { toast } from 'sonner';
+import { STORAGE_KEYS } from '@/config';
 
 interface OrdersContextType {
   orders: Order[];
@@ -28,9 +29,13 @@ const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
 export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // Load orders from service on mount
+  // Load orders from service on mount (only if authenticated)
   useEffect(() => {
     const loadOrders = async () => {
+      // Only load orders if user is authenticated (has token)
+      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      if (!token) return;
+
       const loadedOrders = await ordersService.getAll();
       setOrders(loadedOrders);
     };

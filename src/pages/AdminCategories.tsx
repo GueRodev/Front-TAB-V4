@@ -18,6 +18,16 @@ import {
 } from '@/features/categories';
 import { DeleteConfirmDialog } from '@/components/common';
 import { useCategoriesAdmin, useCategoryRecycleBin } from '@/features/categories';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const AdminCategories: React.FC = () => {
   const [showRecycleBin, setShowRecycleBin] = useState(false);
@@ -74,9 +84,12 @@ const AdminCategories: React.FC = () => {
 
   const {
     deletedCategories,
-    handleRestore,
-    handleForceDelete,
     isLoading: recycleBinLoading,
+    confirmDialog: recycleBinDialog,
+    openRestoreDialog,
+    openForceDeleteDialog,
+    closeConfirmDialog: closeRecycleBinDialog,
+    handleConfirm: handleRecycleBinConfirm,
   } = useCategoryRecycleBin({ isVisible: showRecycleBin });
 
   return (
@@ -166,8 +179,8 @@ const AdminCategories: React.FC = () => {
               {showRecycleBin && (
                 <CategoryRecycleBin
                   deletedCategories={deletedCategories}
-                  onRestore={handleRestore}
-                  onForceDelete={handleForceDelete}
+                  onRestore={openRestoreDialog}
+                  onForceDelete={openForceDeleteDialog}
                   isLoading={recycleBinLoading}
                 />
               )}
@@ -273,6 +286,43 @@ const AdminCategories: React.FC = () => {
         itemType="subcategory"
         onConfirm={confirmDeleteSubcategory}
       />
+
+      {/* Recycle Bin Confirmation Dialog */}
+      <AlertDialog open={recycleBinDialog.open} onOpenChange={closeRecycleBinDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {recycleBinDialog.action === 'restore'
+                ? '¿Restaurar categoría?'
+                : '¿Eliminar permanentemente?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {recycleBinDialog.action === 'restore' ? (
+                <>
+                  Se restaurará la categoría <strong>"{recycleBinDialog.categoryName}"</strong> y
+                  todos los productos que tenía asignados volverán automáticamente a esta categoría.
+                </>
+              ) : (
+                <>
+                  Esta acción eliminará permanentemente la categoría <strong>"{recycleBinDialog.categoryName}"</strong>.
+                  Los productos asociados serán movidos a "Otros". Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRecycleBinConfirm}
+              className={recycleBinDialog.action === 'restore'
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-destructive hover:bg-destructive/90'}
+            >
+              {recycleBinDialog.action === 'restore' ? 'Restaurar' : 'Eliminar Permanentemente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 };

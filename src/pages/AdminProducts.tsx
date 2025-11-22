@@ -10,8 +10,9 @@ import { AdminSidebar, AdminHeader } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Trash2 } from 'lucide-react';
-import { useProductsAdmin, useStockManagement, useProductRecycleBin } from '@/features/products';
+import { useProductsAdmin, useStockManagement, useProductRecycleBin, useProducts } from '@/features/products';
 import {
   ProductsListAdmin,
   ProductFormDialog,
@@ -31,6 +32,9 @@ import {
 const AdminProducts = () => {
   // Track which tab is active for lazy loading
   const [activeTab, setActiveTab] = useState('active');
+
+  // Get deleted count for badge
+  const { deletedCount } = useProducts();
 
   const {
     // Products data
@@ -145,6 +149,11 @@ const AdminProducts = () => {
                     <Trash2 className="h-4 w-4" />
                     <span className="hidden sm:inline">Papelera</span>
                     <span className="sm:hidden">Papelera</span>
+                    {deletedCount > 0 && (
+                      <Badge variant="destructive" className="ml-1 px-1.5 py-0 text-xs">
+                        {deletedCount}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </TabsList>
 

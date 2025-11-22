@@ -22,12 +22,14 @@ interface WishlistGridProps {
   products: WishlistProduct[];
   onAddToCart: (product: any, e?: React.MouseEvent) => void;
   onToggleWishlist: (product: WishlistProduct, e?: React.MouseEvent) => void;
+  onProductClick?: (product: WishlistProduct) => void;
 }
 
 export const WishlistGrid: React.FC<WishlistGridProps> = ({
   products,
   onAddToCart,
   onToggleWishlist,
+  onProductClick,
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -45,6 +47,7 @@ export const WishlistGrid: React.FC<WishlistGridProps> = ({
           isWishlisted={true}
           onToggleWishlist={(e) => onToggleWishlist(product, e)}
           onAddToCart={(e) => onAddToCart(product, e)}
+          onProductClick={() => onProductClick?.(product)}
         />
       ))}
     </div>

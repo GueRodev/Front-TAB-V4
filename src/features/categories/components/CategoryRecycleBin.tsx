@@ -22,8 +22,8 @@ import type { Category } from '../types';
 
 interface CategoryRecycleBinProps {
   deletedCategories: Category[];
-  onRestore: (id: string) => void;
-  onForceDelete: (id: string) => void;
+  onRestore: (category: Category) => void;
+  onForceDelete: (category: Category) => void;
   isLoading?: boolean;
 }
 
@@ -192,7 +192,7 @@ export const CategoryRecycleBin: React.FC<CategoryRecycleBinProps> = ({
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <Button
-                      onClick={() => onRestore(category.id)}
+                      onClick={() => onRestore(category)}
                       disabled={isLoading}
                       variant="default"
                       size="sm"
@@ -202,7 +202,7 @@ export const CategoryRecycleBin: React.FC<CategoryRecycleBinProps> = ({
                       Restaurar
                     </Button>
                     <Button
-                      onClick={() => onForceDelete(category.id)}
+                      onClick={() => onForceDelete(category)}
                       disabled={isLoading}
                       variant="destructive"
                       size="sm"

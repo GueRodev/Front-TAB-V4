@@ -80,6 +80,50 @@ export const useProductOperations = () => {
   };
 
   /**
+   * Get category and subcategory names from a product
+   */
+  const getCategoryInfo = (product: Product) => {
+    // If product has eager-loaded category relation
+    if (product.category) {
+      const category = product.category;
+      // Find if this category has a parent (is a subcategory)
+      const parentCategory = categories.find(c =>
+        c.children?.some(child => child.id === category.id)
+      );
+
+      if (parentCategory) {
+        return {
+          categoryName: parentCategory.name,
+          subcategoryName: category.name
+        };
+      }
+      return {
+        categoryName: category.name,
+        subcategoryName: undefined
+      };
+    }
+
+    // Fallback: search in categories
+    for (const cat of categories) {
+      if (cat.id === product.category_id) {
+        return {
+          categoryName: cat.name,
+          subcategoryName: undefined
+        };
+      }
+      const subcategory = cat.children?.find(child => child.id === product.category_id);
+      if (subcategory) {
+        return {
+          categoryName: cat.name,
+          subcategoryName: subcategory.name
+        };
+      }
+    }
+
+    return { categoryName: getCategorySlug(product.category_id), subcategoryName: undefined };
+  };
+
+  /**
    * Toggle product in wishlist
    */
   const handleToggleWishlist = (product: Product, e?: React.MouseEvent) => {
@@ -88,14 +132,17 @@ export const useProductOperations = () => {
       e.stopPropagation();
     }
 
-    const categorySlug = getCategorySlug(product.category_id);
+    const { categoryName, subcategoryName } = getCategoryInfo(product);
 
     toggleWishlist({
       id: product.id,
       name: product.name,
       image: product.image_url || '',
       price: product.price,
-      category: categorySlug,
+      category: categoryName,
+      brand: product.brand,
+      subcategory: subcategoryName,
+      stock: product.stock,
     });
   };
 

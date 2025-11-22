@@ -14,7 +14,7 @@ interface UseProductRecycleBinOptions {
 }
 
 export const useProductRecycleBin = (options?: UseProductRecycleBinOptions) => {
-  const { getDeletedProducts, restoreProduct, forceDeleteProduct, loading } = useProducts();
+  const { getDeletedProducts, restoreProduct, forceDeleteProduct, loading, deletedCount } = useProducts();
   const [deletedProducts, setDeletedProducts] = useState<Product[]>([]);
   const [isLoadingDeleted, setIsLoadingDeleted] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -47,13 +47,16 @@ export const useProductRecycleBin = (options?: UseProductRecycleBinOptions) => {
     }
   };
 
-  // Lazy loading: only load when visible for the first time
+  // Lazy loading: load when visible for first time, or refresh when deletedCount changes
   useEffect(() => {
-    if (isVisible && !hasLoadedOnce) {
-      loadDeletedProducts();
+    if (isVisible) {
+      // First load or refresh when deletedCount changes (product deleted from active list)
+      if (!hasLoadedOnce || deletedCount !== deletedProducts.length) {
+        loadDeletedProducts();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVisible]);
+  }, [isVisible, deletedCount]);
 
   // Open restore confirmation
   const openRestoreDialog = (product: Product) => {

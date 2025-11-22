@@ -184,7 +184,7 @@ export const ProductFormDialog = ({
             </div>
 
             <div>
-              <Label htmlFor="sku">SKU</Label>
+              <Label htmlFor="sku">SKU (Código)</Label>
               <Input
                 id="sku"
                 value={formData.sku}
