@@ -20,7 +20,7 @@ import type { DeliveryAddress } from '@/features/orders/types';
 interface AddressConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  address: DeliveryAddress | undefined;
+  address: DeliveryAddress | null | undefined;
   onConfirm: () => void;
 }
 

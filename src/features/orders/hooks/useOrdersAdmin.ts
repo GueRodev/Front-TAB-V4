@@ -8,7 +8,6 @@ import { useOrders } from '../contexts';
 import { useProducts } from '@/features/products';
 import { useCategories } from '@/features/categories';
 import { useNotifications } from '@/features/notifications';
-import { productsService } from '@/features/products/services';
 import { toast } from '@/hooks/use-toast';
 import type { Order } from '../types';
 import type { Product } from '@/features/products/types';
@@ -24,16 +23,39 @@ interface PaymentConfirmationDialog {
   order: Order | null;
 }
 
+/**
+ * Cart item for in-store orders
+ */
+interface InStoreCartItem {
+  id: string;
+  product_id: number;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+  stock: number; // Para validación
+}
+
 interface UseOrdersAdminReturn {
   // Order data
   onlineOrders: Order[];
   inStoreOrders: Order[];
-  
-  // In-store order creation
+
+  // In-store cart (múltiples productos)
+  cartItems: InStoreCartItem[];
+  cartTotal: number;
+  addToCart: () => void;
+  removeFromCart: (productId: string) => void;
+  updateCartItemQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+
+  // Product selection (para agregar al carrito)
   selectedProduct: string;
   setSelectedProduct: (productId: string) => void;
   quantity: number;
   setQuantity: (quantity: number) => void;
+
+  // Customer info
   customerName: string;
   setCustomerName: (name: string) => void;
   customerPhone: string;
@@ -42,7 +64,7 @@ interface UseOrdersAdminReturn {
   setCustomerEmail: (email: string) => void;
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
-  
+
   // Product filtering
   categoryFilter: string;
   setCategoryFilter: (categoryId: string) => void;
@@ -50,23 +72,23 @@ interface UseOrdersAdminReturn {
   setSearchQuery: (query: string) => void;
   productSelectorOpen: boolean;
   setProductSelectorOpen: (open: boolean) => void;
-  
+
   // Product data
   activeProducts: Product[];
   filteredProducts: Product[];
   selectedProductData: Product | undefined;
-  
+
   // Order actions
   handleCreateInStoreOrder: (e: React.FormEvent) => void;
   handleCompleteOrder: (order: Order) => void;
   handleCancelOrder: (order: Order) => void;
-  
+
   // Dialog states
   deleteOrderDialog: DeleteOrderDialog;
   openDeleteOrderDialog: (orderId: string, order: Order) => void;
   closeDeleteOrderDialog: () => void;
   confirmDeleteOrder: () => void;
-  
+
   // Payment confirmation dialog
   paymentConfirmDialog: PaymentConfirmationDialog;
   openPaymentConfirmDialog: (order: Order) => void;
@@ -75,14 +97,19 @@ interface UseOrdersAdminReturn {
 }
 
 export const useOrdersAdmin = (): UseOrdersAdminReturn => {
-  // State for in-store order creation
+  // In-store cart state (múltiples productos)
+  const [cartItems, setCartItems] = useState<InStoreCartItem[]>([]);
+
+  // State for product selection (para agregar al carrito)
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
+
+  // Customer info state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
-  
+
   // Product filtering state
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,7 +129,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   // Get data from contexts
   const { getOrdersByType, addOrder, deleteOrder, updateOrderStatus } = useOrders();
-  const { products, updateProduct } = useProducts();
+  const { products } = useProducts();
   const { categories } = useCategories();
   const { addNotification } = useNotifications();
   
@@ -135,12 +162,15 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
   // Get selected product data
   const selectedProductData = activeProducts.find(p => p.id === selectedProduct);
 
-  /**
-   * Create in-store order
-   */
-  const handleCreateInStoreOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Calculate cart total
+  const cartTotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }, [cartItems]);
 
+  /**
+   * Add selected product to cart
+   */
+  const addToCart = () => {
     if (!selectedProduct || !selectedProductData) {
       toast({
         title: "Error",
@@ -150,10 +180,153 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       return;
     }
 
-    if (quantity > selectedProductData.stock) {
+    // Check if product already in cart
+    const existingItem = cartItems.find(item => item.id === selectedProduct);
+    const currentQtyInCart = existingItem ? existingItem.quantity : 0;
+    const totalRequested = currentQtyInCart + quantity;
+
+    if (totalRequested > selectedProductData.stock) {
       toast({
         title: "Error",
-        description: "No hay suficiente stock disponible",
+        description: `Stock insuficiente. Disponible: ${selectedProductData.stock}, en carrito: ${currentQtyInCart}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (existingItem) {
+      // Update quantity if already in cart
+      setCartItems(prev =>
+        prev.map(item =>
+          item.id === selectedProduct
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        )
+      );
+    } else {
+      // Add new item to cart
+      setCartItems(prev => [...prev, {
+        id: selectedProductData.id,
+        product_id: Number(selectedProductData.id),
+        name: selectedProductData.name,
+        image: selectedProductData.image_url || '',
+        price: selectedProductData.price,
+        quantity,
+        stock: selectedProductData.stock,
+      }]);
+    }
+
+    // Reset selection
+    setSelectedProduct('');
+    setQuantity(1);
+
+    toast({
+      title: "Producto agregado",
+      description: `${selectedProductData.name} x${quantity} agregado al pedido`,
+    });
+  };
+
+  /**
+   * Remove product from cart
+   */
+  const removeFromCart = (productId: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== productId));
+  };
+
+  /**
+   * Update cart item quantity
+   */
+  const updateCartItemQuantity = (productId: string, newQuantity: number) => {
+    const item = cartItems.find(i => i.id === productId);
+    if (!item) return;
+
+    if (newQuantity > item.stock) {
+      toast({
+        title: "Error",
+        description: `Stock máximo disponible: ${item.stock}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+
+    setCartItems(prev =>
+      prev.map(i =>
+        i.id === productId ? { ...i, quantity: newQuantity } : i
+      )
+    );
+  };
+
+  /**
+   * Clear entire cart
+   */
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  /**
+   * Create in-store order
+   * Soporta: carrito con múltiples productos O producto individual (compatibilidad)
+   */
+  const handleCreateInStoreOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Determinar items: usar carrito si tiene productos, sino producto seleccionado
+    let orderItems: Array<{
+      id: string;
+      product_id: number;
+      name: string;
+      image: string;
+      price: number;
+      quantity: number;
+    }>;
+
+    if (cartItems.length > 0) {
+      // Usar carrito (múltiples productos)
+      orderItems = cartItems.map(item => ({
+        id: item.id,
+        product_id: item.product_id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+      }));
+    } else if (selectedProduct && selectedProductData) {
+      // Fallback: producto individual (compatibilidad hacia atrás)
+      if (quantity > selectedProductData.stock) {
+        toast({
+          title: "Error",
+          description: "No hay suficiente stock disponible",
+          variant: "destructive",
+        });
+        return;
+      }
+      orderItems = [{
+        id: selectedProductData.id,
+        product_id: Number(selectedProductData.id),
+        name: selectedProductData.name,
+        image: selectedProductData.image_url || '',
+        price: selectedProductData.price,
+        quantity,
+      }];
+    } else {
+      toast({
+        title: "Error",
+        description: "Agrega al menos un producto al pedido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar datos del cliente
+    if (!customerName || !customerPhone || !paymentMethod) {
+      toast({
+        title: "Error",
+        description: "Completa los datos del cliente y método de pago",
         variant: "destructive",
       });
       return;
@@ -162,25 +335,17 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     const orderData = {
       type: 'in-store' as const,
       status: 'pending' as const,
-      items: [{
-        id: selectedProductData.id,
-        product_id: Number(selectedProductData.id),
-        name: selectedProductData.name,
-        image: selectedProductData.image_url || '',
-        price: selectedProductData.price,
-        quantity,
-      }],
+      items: orderItems,
       customerInfo: {
         name: customerName,
         phone: customerPhone,
         email: customerEmail || undefined,
       },
-      deliveryOption: 'pickup' as const, // In-store is always pickup
+      deliveryOption: 'pickup' as const,
       paymentMethod,
     };
 
     try {
-      // Context calculates subtotal/total automatically
       const orderId = await addOrder(orderData);
 
       addNotification({
@@ -190,7 +355,8 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         time: 'Ahora',
       });
 
-      // Reset form
+      // Reset form and cart
+      clearCart();
       setSelectedProduct('');
       setQuantity(1);
       setCustomerName('');
@@ -231,24 +397,14 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   /**
    * Confirm and delete order
+   * NOTA: El backend libera el stock automáticamente si el pedido estaba pendiente/en proceso
    */
   const confirmDeleteOrder = async () => {
     if (!deleteOrderDialog.orderId || !deleteOrderDialog.order) return;
 
     try {
+      // Backend libera el stock automáticamente
       await deleteOrder(deleteOrderDialog.orderId);
-
-      // Restore stock if order was completed
-      if (deleteOrderDialog.order.status === 'completed') {
-        for (const item of deleteOrderDialog.order.items) {
-          const product = products.find(p => p.id === item.id);
-          if (product) {
-            await updateProduct(product.id, {
-              stock: product.stock + item.quantity,
-            });
-          }
-        }
-      }
 
       addNotification({
         type: 'order',
@@ -292,24 +448,16 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   /**
    * Confirm and complete order (after payment confirmation)
+   * NOTA: El backend maneja automáticamente el descuento de stock al completar
    */
   const confirmCompleteOrder = async () => {
     if (!paymentConfirmDialog.order) return;
 
     const order = paymentConfirmDialog.order;
-    
-    try {
-      await updateOrderStatus(order.id, 'completed');
 
-      // Update stock for each item
-      for (const item of order.items) {
-        const product = products.find(p => p.id === item.id);
-        if (product && product.stock >= item.quantity) {
-          await updateProduct(product.id, {
-            stock: product.stock - item.quantity,
-          });
-        }
-      }
+    try {
+      // Backend automáticamente confirma la venta y descuenta el stock real
+      await updateOrderStatus(order.id, 'completed');
 
       addNotification({
         type: 'order',
@@ -335,20 +483,12 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   /**
    * Complete order (in-store orders complete immediately)
+   * NOTA: El backend maneja automáticamente el descuento de stock al completar
    */
   const handleCompleteOrder = async (order: Order) => {
     try {
+      // Backend automáticamente confirma la venta y descuenta el stock real
       await updateOrderStatus(order.id, 'completed');
-
-      // Update stock for each item
-      for (const item of order.items) {
-        const product = products.find(p => p.id === item.id);
-        if (product && product.stock >= item.quantity) {
-          await updateProduct(product.id, {
-            stock: product.stock - item.quantity,
-          });
-        }
-      }
 
       addNotification({
         type: 'order',
@@ -398,12 +538,25 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
   };
 
   return {
+    // Order data
     onlineOrders,
     inStoreOrders,
+
+    // In-store cart
+    cartItems,
+    cartTotal,
+    addToCart,
+    removeFromCart,
+    updateCartItemQuantity,
+    clearCart,
+
+    // Product selection
     selectedProduct,
     setSelectedProduct,
     quantity,
     setQuantity,
+
+    // Customer info
     customerName,
     setCustomerName,
     customerPhone,
@@ -412,16 +565,26 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     setCustomerEmail,
     paymentMethod,
     setPaymentMethod,
+
+    // Product filtering
     categoryFilter,
     setCategoryFilter,
     searchQuery,
     setSearchQuery,
     productSelectorOpen,
     setProductSelectorOpen,
+
+    // Product data
     activeProducts,
     filteredProducts,
     selectedProductData,
+
+    // Order actions
     handleCreateInStoreOrder,
+    handleCompleteOrder,
+    handleCancelOrder,
+
+    // Dialogs
     deleteOrderDialog,
     openDeleteOrderDialog,
     closeDeleteOrderDialog,
@@ -430,7 +593,5 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     openPaymentConfirmDialog,
     closePaymentConfirmDialog,
     confirmCompleteOrder,
-    handleCompleteOrder,
-    handleCancelOrder,
   };
 };

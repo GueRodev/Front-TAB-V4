@@ -69,11 +69,17 @@ export const useProductOperations = () => {
       return false;
     }
 
+    // Get category info for WhatsApp message
+    const { categoryName } = getCategoryInfo(product);
+
     addToCart({
       id: product.id,
       name: product.name,
       image: product.image_url || '',
       price: product.price,
+      brand: product.brand,
+      sku: product.sku,
+      categoryName,
     });
 
     return true;

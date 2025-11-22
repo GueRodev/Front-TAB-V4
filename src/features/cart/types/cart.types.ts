@@ -9,4 +9,8 @@ export interface CartItem {
   image: string;
   price: number;
   quantity: number;
+  // Optional product details for WhatsApp message
+  brand?: string;
+  sku?: string;
+  categoryName?: string;
 }

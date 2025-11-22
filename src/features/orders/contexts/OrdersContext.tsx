@@ -1,7 +1,15 @@
 /**
  * Orders Context
  * Manages order history and status
- * Integrated with stock management system
+ *
+ * NOTA: El backend (OrderService + StockReservationService) maneja internamente:
+ * - Reserva de stock al crear orden
+ * - Confirmación de venta al completar orden
+ * - Liberación de stock al cancelar orden
+ *
+ * Por lo tanto, este contexto solo necesita:
+ * - checkAvailability: validación pre-orden para mostrar errores al usuario
+ * - Las demás operaciones de stock las hace el backend automáticamente
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -36,8 +44,12 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
       if (!token) return;
 
-      const loadedOrders = await ordersService.getAll();
-      setOrders(loadedOrders);
+      try {
+        const loadedOrders = await ordersService.getAll();
+        setOrders(loadedOrders);
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      }
     };
     loadOrders();
   }, []);
@@ -73,7 +85,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       total,
     };
 
-    // 6. Check stock availability before creating order
+    // 6. Check stock availability before creating order (validación para UX)
     const items = completeOrderData.items.map(item => ({
       product_id: String(item.product_id),
       quantity: item.quantity,
@@ -81,37 +93,33 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     try {
       const availability = await stockMovementsService.checkAvailability(items);
-      
+
       if (!availability.available) {
         const errorMessages = availability.errors
           .map(err => `${err.product_name}: solicitado ${err.requested}, disponible ${err.available}`)
           .join(', ');
-        
+
         toast.error('Stock insuficiente', {
           description: errorMessages,
         });
-        
+
         throw new Error('Stock insuficiente para completar el pedido');
       }
 
       // 7. Create order via service
+      // NOTA: El backend automáticamente:
+      // - Verifica stock (doble verificación)
+      // - Crea la orden
+      // - Reserva el stock
       const result = await ordersService.create(completeOrderData);
-      
-      // 8. Reserve stock for pending orders
-      if (completeOrderData.status === 'pending') {
-        await stockMovementsService.reserveStock({
-          order_id: result.data.id,
-          items,
-        });
-      }
-      
-      // 9. Update local state
+
+      // 8. Update local state
       setOrders(prev => [result.data, ...prev]);
-      
+
       toast.success('Pedido creado', {
         description: `Pedido #${result.data.order_number} creado exitosamente`,
       });
-      
+
       return result.data.id;
     } catch (error) {
       console.error('Error adding order:', error);
@@ -122,7 +130,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<void> => {
     try {
       const currentOrder = orders.find(o => o.id === orderId);
-      
+
       if (!currentOrder) {
         throw new Error('Pedido no encontrado');
       }
@@ -146,21 +154,11 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       // Call service
+      // NOTA: El backend automáticamente maneja los movimientos de stock:
+      // - complete: confirma la venta y descuenta stock real
+      // - cancel: libera la reserva de stock
       await ordersService.updateStatus(orderId, status);
-      
-      // Handle stock movements
-      if (status === 'completed') {
-        // From pending or in_progress → completed: confirm sale
-        if (previousStatus === 'pending' || previousStatus === 'in_progress') {
-          await stockMovementsService.confirmSale(orderId);
-        }
-      } else if (status === 'cancelled') {
-        // From pending or in_progress → cancelled: release reservation
-        if (previousStatus === 'pending' || previousStatus === 'in_progress') {
-          await stockMovementsService.cancelReservation(orderId);
-        }
-      }
-      
+
       // Update local state
       setOrders(prev =>
         prev.map(order =>
@@ -185,7 +183,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const markInProgress = async (orderId: string): Promise<void> => {
     try {
       const currentOrder = orders.find(o => o.id === orderId);
-      
+
       if (!currentOrder) {
         throw new Error('Pedido no encontrado');
       }
@@ -200,9 +198,9 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Call service
       await ordersService.markInProgress(orderId);
-      
-      // Stock remains reserved (no movement needed)
-      
+
+      // Stock remains reserved (no movement needed - backend handles this)
+
       // Update local state
       setOrders(prev =>
         prev.map(order =>
@@ -226,8 +224,9 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteOrder = async (orderId: string): Promise<void> => {
     // Call service to persist
+    // NOTA: El backend libera el stock si el pedido está pending/in_progress
     await ordersService.deleteOrder(orderId);
-    
+
     // Update local state
     setOrders(prev => prev.filter(order => order.id !== orderId));
   };
@@ -235,12 +234,12 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const archiveOrder = async (orderId: string): Promise<void> => {
     // Call service to persist
     await ordersService.archive(orderId);
-    
+
     // Update local state
     setOrders(prev =>
       prev.map(order =>
         order.id === orderId
-          ? { ...order, archived: true, archivedAt: new Date().toISOString() }
+          ? { ...order, status: 'archived' as OrderStatus, archived: true, archivedAt: new Date().toISOString() }
           : order
       )
     );
@@ -249,12 +248,12 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const unarchiveOrder = async (orderId: string): Promise<void> => {
     // Call service to persist
     await ordersService.unarchive(orderId);
-    
+
     // Update local state
     setOrders(prev =>
       prev.map(order =>
         order.id === orderId
-          ? { ...order, archived: false, archivedAt: undefined }
+          ? { ...order, status: 'completed' as OrderStatus, archived: false, archivedAt: undefined }
           : order
       )
     );
@@ -265,11 +264,11 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const getArchivedOrders = (): Order[] => {
-    return orders.filter(order => order.archived);
+    return orders.filter(order => order.archived || order.status === 'archived');
   };
 
   const getCompletedOrders = (): Order[] => {
-    return orders.filter(order => 
+    return orders.filter(order =>
       order.status === 'completed' || order.status === 'cancelled'
     );
   };

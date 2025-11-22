@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAddressSelection } from '@/features/addresses';
-import { useAuth } from '@/features/auth';
 import { useCartOperations, CartItemsList, EmptyCart, CartSummary, OrderForm, AddressConfirmationDialog } from '@/features/cart';
 import { Header, Footer } from '@/components/layout';
 import { useOrderForm, AddressSelector } from '@/features/orders';
-import type { DeliveryAddress } from '@/features/orders/types';
 
 /**
  * Cart Page
  * Checkout page with cart items and order form
  */
 const Cart = () => {
-  const { user, isAuthenticated } = useAuth();
   const {
     items,
     totalPrice,
@@ -26,41 +22,32 @@ const Cart = () => {
     formData,
     deliveryOption,
     paymentMethod,
+    selectedAddressId,
+    deliveryAddress,
     handleInputChange,
     setDeliveryOption,
     setPaymentMethod,
+    handleSavedAddressSelect,
+    handleManualAddressChange,
+    handleAddressTypeChange,
     submitOrder,
   } = useOrderForm();
 
-  const {
-    selectedAddressId,
-    manualAddress,
-    userAddresses,
-    showManualInput,
-    handleSelectAddress,
-    handleManualAddressChange,
-    getSelectedAddress,
-  } = useAddressSelection(user, isAuthenticated);
-
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [pendingAddressData, setPendingAddressData] = useState<DeliveryAddress | undefined>();
 
   const handleSubmit = () => {
-    const addressData = deliveryOption === 'delivery' ? getSelectedAddress() : undefined;
-    
     // Si es envío a domicilio, mostrar confirmación primero
-    if (deliveryOption === 'delivery') {
-      setPendingAddressData(addressData);
+    if (deliveryOption === 'delivery' && deliveryAddress) {
       setShowConfirmation(true);
     } else {
       // Si es pickup, procesar directamente
-      submitOrder(addressData);
+      submitOrder();
     }
   };
 
   const handleConfirmAddress = () => {
     setShowConfirmation(false);
-    submitOrder(pendingAddressData);
+    submitOrder();
   };
 
   return (
@@ -119,12 +106,11 @@ const Cart = () => {
                 >
                   {deliveryOption === 'delivery' && (
                     <AddressSelector
-                      savedAddresses={userAddresses}
+                      selectedAddress={deliveryAddress}
                       selectedAddressId={selectedAddressId}
-                      onSelectAddress={handleSelectAddress}
-                      manualAddress={manualAddress}
+                      onSelectSavedAddress={handleSavedAddressSelect}
                       onManualAddressChange={handleManualAddressChange}
-                      showManualInput={showManualInput}
+                      onAddressTypeChange={handleAddressTypeChange}
                     />
                   )}
                 </OrderForm>
@@ -137,7 +123,7 @@ const Cart = () => {
       <AddressConfirmationDialog
         open={showConfirmation}
         onOpenChange={setShowConfirmation}
-        address={pendingAddressData}
+        address={deliveryAddress}
         onConfirm={handleConfirmAddress}
       />
 

@@ -1,6 +1,10 @@
 /**
  * Order Form Business Logic Hook
  * Handles order form state, validation, and submission
+ *
+ * Soporta:
+ * - Direcciones guardadas del usuario (address_id)
+ * - Direcciones manuales con dropdowns (province/canton/district)
  */
 
 import { useState, useEffect } from 'react';
@@ -10,6 +14,7 @@ import { useCart } from '@/features/cart';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { orderFormSchema } from '../validations';
+import { WHATSAPP_CONFIG } from '@/config/app.config';
 import type { DeliveryAddress, DeliveryOption } from '../types';
 
 /**
@@ -18,17 +23,24 @@ import type { DeliveryAddress, DeliveryOption } from '../types';
 interface OrderFormData {
   customerName: string;
   customerPhone: string;
+  customerEmail: string;
 }
 
 const INITIAL_FORM_STATE: OrderFormData = {
   customerName: '',
   customerPhone: '',
+  customerEmail: '',
 };
 
 export const useOrderForm = () => {
   const [formData, setFormData] = useState<OrderFormData>(INITIAL_FORM_STATE);
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOption>('pickup');
   const [paymentMethod, setPaymentMethod] = useState('');
+
+  // Estado para dirección de envío
+  const [addressType, setAddressType] = useState<'saved' | 'manual'>('saved');
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress | null>(null);
 
   const { addOrder } = useOrders();
   const { addNotification } = useNotifications();
@@ -43,6 +55,7 @@ export const useOrderForm = () => {
       setFormData({
         customerName: user.name || '',
         customerPhone: user.phone || '',
+        customerEmail: user.email || '',
       });
     }
   }, [user]);
@@ -62,6 +75,9 @@ export const useOrderForm = () => {
     setFormData(INITIAL_FORM_STATE);
     setDeliveryOption('pickup');
     setPaymentMethod('');
+    setAddressType('saved');
+    setSelectedAddressId(null);
+    setDeliveryAddress(null);
   };
 
   /**
@@ -77,21 +93,47 @@ export const useOrderForm = () => {
   }, [deliveryOption, paymentMethod]);
 
   /**
+   * Handle saved address selection
+   */
+  const handleSavedAddressSelect = (addressId: string, address: DeliveryAddress) => {
+    setSelectedAddressId(addressId);
+    setDeliveryAddress(address);
+    setAddressType('saved');
+  };
+
+  /**
+   * Handle manual address change
+   */
+  const handleManualAddressChange = (address: DeliveryAddress) => {
+    setDeliveryAddress(address);
+    setSelectedAddressId(null);
+    setAddressType('manual');
+  };
+
+  /**
+   * Handle address type change
+   */
+  const handleAddressTypeChange = (type: 'saved' | 'manual') => {
+    setAddressType(type);
+    if (type === 'manual') {
+      setSelectedAddressId(null);
+    }
+  };
+
+  /**
    * Validate form data before submission
    */
-  const validateForm = (
-    deliveryAddress?: DeliveryAddress,
-  ): boolean => {
+  const validateForm = (): boolean => {
     const validationData = {
       customerName: formData.customerName,
       customerPhone: formData.customerPhone,
       deliveryOption,
       paymentMethod,
-      deliveryAddress,
+      deliveryAddress: deliveryOption === 'delivery' ? deliveryAddress : undefined,
     };
 
     const result = orderFormSchema.safeParse(validationData);
-    
+
     if (!result.success) {
       const firstError = result.error.errors[0];
       toast({
@@ -102,55 +144,112 @@ export const useOrderForm = () => {
       return false;
     }
 
+    // Validación adicional para delivery
+    if (deliveryOption === 'delivery') {
+      if (!selectedAddressId && !deliveryAddress) {
+        toast({
+          title: "Error de validación",
+          description: "Debe seleccionar o ingresar una dirección de envío",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validar que la dirección manual esté completa
+      if (addressType === 'manual' && deliveryAddress) {
+        if (!deliveryAddress.province || !deliveryAddress.canton ||
+            !deliveryAddress.district || !deliveryAddress.address) {
+          toast({
+            title: "Error de validación",
+            description: "Debe completar todos los campos de la dirección",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
   /**
    * Build WhatsApp message with order details
    */
-  const buildWhatsAppMessage = (
-    orderId: string,
-    deliveryAddress?: DeliveryAddress,
-  ): string => {
-    const items = cart.map(item => 
-      `• ${item.name} x${item.quantity} - ₡${(item.price * item.quantity).toLocaleString('es-CR')}`
-    ).join('%0A');
+  const buildWhatsAppMessage = (orderId: string): string => {
+    // Build detailed product list
+    const items = cart.map(item => {
+      let productLine = `• *${item.name}*`;
+
+      // Add category and brand if available
+      const details: string[] = [];
+      if (item.categoryName) details.push(item.categoryName);
+      if (item.brand) details.push(item.brand);
+      if (item.sku) details.push(`SKU: ${item.sku}`);
+
+      if (details.length > 0) {
+        productLine += `\n  _${details.join(' | ')}_`;
+      }
+
+      productLine += `\n  Cantidad: ${item.quantity} | Precio: ₡${item.price.toLocaleString('es-CR')} | Subtotal: ₡${(item.price * item.quantity).toLocaleString('es-CR')}`;
+
+      return productLine;
+    }).join('\n\n');
 
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    let message = `*Nuevo Pedido #${orderId}*%0A%0A`;
-    message += `*Cliente:* ${formData.customerName}%0A`;
-    message += `*Teléfono:* ${formData.customerPhone}%0A%0A`;
-    message += `*Productos:*%0A${items}%0A%0A`;
-    message += `*Total:* ₡${total.toLocaleString('es-CR')}%0A%0A`;
-    
-    if (deliveryOption === 'delivery' && deliveryAddress) {
-      message += `*Entrega a domicilio*%0A`;
-      message += `*Provincia:* ${deliveryAddress.province}%0A`;
-      message += `*Cantón:* ${deliveryAddress.canton}%0A`;
-      message += `*Distrito:* ${deliveryAddress.district}%0A`;
-      message += `*Dirección:* ${deliveryAddress.address}%0A%0A`;
-    } else {
-      message += `*Retiro en tienda*%0A%0A`;
-    }
-    
-    message += `*Método de pago:* ${paymentMethod}%0A`;
+    // Get payment method label
+    const paymentLabels: Record<string, string> = {
+      'cash': 'Efectivo',
+      'card': 'Tarjeta',
+      'transfer': 'Transferencia',
+      'sinpe': 'SINPE Móvil',
+    };
+    const paymentLabel = paymentLabels[paymentMethod] || paymentMethod;
 
-    return message;
+    let message = `🛒 *NUEVO PEDIDO #${orderId}*\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    message += `👤 *DATOS DEL CLIENTE*\n`;
+    message += `• Nombre: ${formData.customerName}\n`;
+    message += `• Teléfono: ${formData.customerPhone}\n`;
+    if (formData.customerEmail) {
+      message += `• Correo: ${formData.customerEmail}\n`;
+    }
+
+    message += `\n📦 *PRODUCTOS*\n`;
+    message += `${items}\n\n`;
+
+    message += `━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `💰 *TOTAL: ₡${total.toLocaleString('es-CR')}*\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    if (deliveryOption === 'delivery' && deliveryAddress) {
+      message += `🚚 *ENTREGA A DOMICILIO*\n`;
+      message += `• Provincia: ${deliveryAddress.province}\n`;
+      message += `• Cantón: ${deliveryAddress.canton}\n`;
+      message += `• Distrito: ${deliveryAddress.district}\n`;
+      message += `• Dirección: ${deliveryAddress.address}\n\n`;
+    } else {
+      message += `🏪 *RETIRO EN TIENDA*\n\n`;
+    }
+
+    message += `💳 *Método de pago:* ${paymentLabel}`;
+
+    // Encode the message for URL
+    return encodeURIComponent(message);
   };
 
   /**
    * Submit order form
    */
-  const submitOrder = async (
-    deliveryAddress?: DeliveryAddress,
-  ) => {
+  const submitOrder = async () => {
     // Validate form first
-    if (!validateForm(deliveryAddress)) {
+    if (!validateForm()) {
       return;
     }
 
-    const orderData = {
+    // Build order data
+    const orderData: any = {
       type: 'online' as const,
       status: 'pending' as const,
       items: cart.map(item => ({
@@ -164,11 +263,22 @@ export const useOrderForm = () => {
       customerInfo: {
         name: formData.customerName,
         phone: formData.customerPhone,
+        email: formData.customerEmail || user?.email,
       },
       deliveryOption,
-      delivery_address: deliveryAddress,
       paymentMethod,
     };
+
+    // Add address data depending on type
+    if (deliveryOption === 'delivery') {
+      if (addressType === 'saved' && selectedAddressId) {
+        // Use saved address ID - backend will load the address
+        orderData.address_id = selectedAddressId;
+      } else if (deliveryAddress) {
+        // Use manual address with names
+        orderData.delivery_address = deliveryAddress;
+      }
+    }
 
     try {
       // Context internally calls the service and calculates subtotal/total
@@ -182,9 +292,9 @@ export const useOrderForm = () => {
         time: 'Ahora',
       });
 
-      // Build WhatsApp message
-      const message = buildWhatsAppMessage(orderId, deliveryAddress);
-      const whatsappUrl = `https://wa.me/50688888888?text=${message}`;
+      // Build WhatsApp message and open chat
+      const message = buildWhatsAppMessage(orderId);
+      const whatsappUrl = `https://wa.me/${WHATSAPP_CONFIG.phoneNumber}?text=${message}`;
       window.open(whatsappUrl, '_blank');
 
       // Clear cart and reset form
@@ -210,13 +320,23 @@ export const useOrderForm = () => {
     formData,
     deliveryOption,
     paymentMethod,
-    
+
+    // Address state
+    addressType,
+    selectedAddressId,
+    deliveryAddress,
+
     // Form actions
     handleInputChange,
     setDeliveryOption,
     setPaymentMethod,
     resetForm,
-    
+
+    // Address actions
+    handleSavedAddressSelect,
+    handleManualAddressChange,
+    handleAddressTypeChange,
+
     // Validation & submission
     validateForm,
     submitOrder,

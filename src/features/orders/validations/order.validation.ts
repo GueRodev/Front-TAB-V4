@@ -53,16 +53,16 @@ export const orderFormSchema = baseOrderSchema.extend({
     canton: z.string().min(1, 'El cantón es requerido'),
     district: z.string().min(1, 'El distrito es requerido'),
     address: z.string().min(10, 'La dirección debe tener al menos 10 caracteres'),
-  }).optional(),
+  }).nullable().optional(),
 }).refine(
   (data) => {
     if (data.deliveryOption === 'delivery') {
-      return !!data.deliveryAddress;
+      return data.deliveryAddress !== null && data.deliveryAddress !== undefined;
     }
     return true;
   },
   {
-    message: 'Debes proporcionar una dirección de entrega completa',
+    message: 'Debes seleccionar o ingresar una dirección de entrega',
     path: ['deliveryAddress'],
   }
 );

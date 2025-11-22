@@ -31,12 +31,25 @@ const AdminOrders = () => {
   });
   
   const {
+    // Order data
     onlineOrders,
     inStoreOrders,
+
+    // In-store cart
+    cartItems,
+    cartTotal,
+    addToCart,
+    removeFromCart,
+    updateCartItemQuantity,
+    clearCart,
+
+    // Product selection
     selectedProduct,
     setSelectedProduct,
     quantity,
     setQuantity,
+
+    // Customer info
     customerName,
     setCustomerName,
     customerPhone,
@@ -45,6 +58,8 @@ const AdminOrders = () => {
     setCustomerEmail,
     paymentMethod,
     setPaymentMethod,
+
+    // Product filtering
     categoryFilter,
     setCategoryFilter,
     searchQuery,
@@ -53,14 +68,18 @@ const AdminOrders = () => {
     setProductSelectorOpen,
     filteredProducts,
     selectedProductData,
-    deleteOrderDialog,
-    paymentConfirmDialog,
+
+    // Order actions
     handleCreateInStoreOrder,
+    handleCompleteOrder,
+    handleCancelOrder,
+
+    // Dialogs
+    deleteOrderDialog,
     openDeleteOrderDialog,
     closeDeleteOrderDialog,
     confirmDeleteOrder,
-    handleCompleteOrder,
-    handleCancelOrder,
+    paymentConfirmDialog,
     openPaymentConfirmDialog,
     closePaymentConfirmDialog,
     confirmCompleteOrder,
@@ -170,10 +189,19 @@ const AdminOrders = () => {
                 {/* In-Store Order Form */}
                 <div className="lg:col-span-1">
                   <InStoreOrderForm
+                    // Cart props
+                    cartItems={cartItems}
+                    cartTotal={cartTotal}
+                    onAddToCart={addToCart}
+                    onRemoveFromCart={removeFromCart}
+                    onUpdateCartQuantity={updateCartItemQuantity}
+                    onClearCart={clearCart}
+                    // Product selection
                     selectedProduct={selectedProduct}
                     setSelectedProduct={setSelectedProduct}
                     quantity={quantity}
                     setQuantity={setQuantity}
+                    // Customer info
                     customerName={customerName}
                     setCustomerName={setCustomerName}
                     customerPhone={customerPhone}
@@ -182,6 +210,7 @@ const AdminOrders = () => {
                     setCustomerEmail={setCustomerEmail}
                     paymentMethod={paymentMethod}
                     setPaymentMethod={setPaymentMethod}
+                    // Product filtering
                     categoryFilter={categoryFilter}
                     setCategoryFilter={setCategoryFilter}
                     searchQuery={searchQuery}
@@ -191,13 +220,14 @@ const AdminOrders = () => {
                     filteredProducts={filteredProducts}
                     selectedProductData={selectedProductData}
                     categories={categories}
+                    // Submit
                     onSubmit={handleCreateInStoreOrder}
                   />
                 </div>
 
                 {/* In-Store Orders List */}
                 <div className="lg:col-span-1 xl:col-span-2">
-                  {inStoreOrders.length === 0 ? (
+                  {visibleInStoreOrders.length === 0 ? (
                     <Card>
                       <CardContent className="py-8 md:py-12 text-center text-muted-foreground">
                         <Store className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-2 opacity-30" />

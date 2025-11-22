@@ -1,31 +1,24 @@
 /**
  * Stock Movements Service
- * Manages stock tracking, reservations, and inventory history
- * ✅ Fully integrated with Laravel backend
+ * Manages stock tracking and inventory history
+ *
+ * NOTA IMPORTANTE:
+ * Las operaciones de reserva, confirmación de venta y cancelación de reserva
+ * son manejadas INTERNAMENTE por el backend (OrderService + StockReservationService).
+ *
+ * Este servicio solo expone:
+ * - getByProduct: Historial de movimientos por producto
+ * - checkAvailability: Verificar stock antes de crear orden (para UX)
+ * - adjustStock: Ajuste manual de stock (entrada/salida/ajuste)
  */
 
 import { api, API_ENDPOINTS } from '@/api';
 import type {
   StockMovement,
   StockAvailability,
-  ReserveStockDto,
   AdjustStockDto,
 } from '../types';
 import { transformLaravelStockMovement } from '../utils';
-
-/**
- * Filters for stock movements queries
- */
-export interface StockMovementFilters {
-  product_id?: string;
-  type?: string;
-  user_id?: string;
-  order_id?: string;
-  from_date?: string;
-  to_date?: string;
-  page?: number;
-  per_page?: number;
-}
 
 /**
  * Stock Movements Service
@@ -43,20 +36,12 @@ class StockMovementsService {
   }
 
   /**
-   * Get all stock movements with optional filters
-   * ⏳ TODO: Implement in Orders feature
-   */
-  async getAll(filters?: StockMovementFilters): Promise<StockMovement[]> {
-    const response = await api.get<StockMovement[]>('/v1/stock-movements', {
-      params: filters,
-    });
-    return response.data.map(transformLaravelStockMovement);
-  }
-
-  /**
    * Check stock availability for multiple items
-   * Used before order creation to validate stock
-   * ⏳ TODO: Implement in Orders feature
+   * Used before order creation to validate stock and show user-friendly errors
+   * 🔗 LARAVEL: POST /api/v1/stock-movements/check-availability
+   *
+   * @param items Array of items to check: [{ product_id: "1", quantity: 2 }, ...]
+   * @returns { available: boolean, errors: Array<{ product_id, product_name, requested, available, message }> }
    */
   async checkAvailability(
     items: Array<{ product_id: string; quantity: number }>
@@ -69,36 +54,12 @@ class StockMovementsService {
   }
 
   /**
-   * Reserve stock for a pending order
-   * Creates 'reserva' movements for each item
-   * ⏳ TODO: Implement in Orders feature
-   */
-  async reserveStock(dto: ReserveStockDto): Promise<void> {
-    await api.post('/v1/stock-movements/reserve', dto);
-  }
-
-  /**
-   * Confirm sale and deduct real stock
-   * Creates 'venta' movements and updates product stock
-   * ⏳ TODO: Implement in Orders feature
-   */
-  async confirmSale(orderId: string): Promise<void> {
-    await api.post(`/v1/stock-movements/confirm-sale/${orderId}`);
-  }
-
-  /**
-   * Cancel reservation and release stock
-   * Creates 'cancelacion_reserva' movements
-   * ⏳ TODO: Implement in Orders feature
-   */
-  async cancelReservation(orderId: string): Promise<void> {
-    await api.post(`/v1/stock-movements/cancel-reservation/${orderId}`);
-  }
-
-  /**
    * Manual stock adjustment
    * Creates 'entrada', 'salida', or 'ajuste' movement
    * 🔗 LARAVEL: POST /api/v1/products/{id}/stock
+   *
+   * @param productId Product ID to adjust
+   * @param dto { type: 'entrada'|'salida'|'ajuste', quantity: number, reason?: string }
    */
   async adjustStock(
     productId: string,

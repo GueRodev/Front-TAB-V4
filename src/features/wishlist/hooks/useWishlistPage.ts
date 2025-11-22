@@ -104,6 +104,8 @@ export const useWishlistPage = () => {
       name: product.name,
       image: product.image,
       price: product.price,
+      brand: product.brand,
+      categoryName: product.category,
     });
   };
 

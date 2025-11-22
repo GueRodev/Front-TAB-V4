@@ -5,8 +5,8 @@
 
 import type { Order, OrderStatus, OrderType } from '../types';
 import type { ApiResponse } from '@/api/types';
-import { STORAGE_KEYS, api, API_ENDPOINTS } from '@/api';
-import { transformLaravelOrder } from '../utils/transformers';
+import { api, API_ENDPOINTS } from '@/api';
+import { transformLaravelOrder, transformToLaravelOrderPayload } from '../utils/transformers';
 
 /**
  * Get all orders
@@ -15,8 +15,32 @@ import { transformLaravelOrder } from '../utils/transformers';
 const getAll = async (): Promise<Order[]> => {
   const isAdmin = true;
   const endpoint = isAdmin ? API_ENDPOINTS.ADMIN_ORDERS : API_ENDPOINTS.ORDERS;
-  const response = await api.get<ApiResponse<any[]>>(endpoint);
-  return response.data.data.map(transformLaravelOrder);
+  const response = await api.get<any>(endpoint);
+
+  // Handle different response structures from backend
+  // Could be: { data: [] } or { data: { data: [] } } (paginated) or just []
+  let ordersData: any[] = [];
+  const responseData = response.data;
+
+  if (Array.isArray(responseData)) {
+    // Direct array response
+    ordersData = responseData;
+  } else if (responseData?.data) {
+    if (Array.isArray(responseData.data)) {
+      // Standard { data: [] } format
+      ordersData = responseData.data;
+    } else if (responseData.data?.data && Array.isArray(responseData.data.data)) {
+      // Paginated { data: { data: [] } } format
+      ordersData = responseData.data.data;
+    } else {
+      // Fallback to empty array
+      console.warn('Unexpected orders response structure:', responseData);
+    }
+  } else {
+    console.warn('Unexpected orders response structure:', responseData);
+  }
+
+  return ordersData.map(transformLaravelOrder);
 };
 
 const getById = async (id: string): Promise<Order | null> => {
@@ -30,12 +54,23 @@ const getByType = async (type: OrderType): Promise<Order[]> => {
 };
 
 const getArchived = async (): Promise<Order[]> => {
-  const response = await api.get<ApiResponse<any[]>>(`${API_ENDPOINTS.ADMIN_ORDERS}?status=archived`);
-  return response.data.data.map(transformLaravelOrder);
+  const response = await api.get<any>(`${API_ENDPOINTS.ADMIN_ORDERS}?status=archived`);
+  const responseData = response.data;
+
+  let ordersData: any[] = [];
+  if (Array.isArray(responseData)) {
+    ordersData = responseData;
+  } else if (responseData?.data && Array.isArray(responseData.data)) {
+    ordersData = responseData.data;
+  }
+
+  return ordersData.map(transformLaravelOrder);
 };
 
 const createOnlineOrder = async (data: Omit<Order, 'id' | 'createdAt' | 'order_number'>): Promise<ApiResponse<Order>> => {
-  const response = await api.post<ApiResponse<any>>(API_ENDPOINTS.ORDERS, data);
+  // Transform frontend format to Laravel API format
+  const payload = transformToLaravelOrderPayload(data, 'online');
+  const response = await api.post<ApiResponse<any>>(API_ENDPOINTS.ORDERS, payload);
   return {
     ...response.data,
     data: transformLaravelOrder(response.data.data),
@@ -43,7 +78,9 @@ const createOnlineOrder = async (data: Omit<Order, 'id' | 'createdAt' | 'order_n
 };
 
 const createInStoreOrder = async (data: Omit<Order, 'id' | 'createdAt' | 'order_number'>): Promise<ApiResponse<Order>> => {
-  const response = await api.post<ApiResponse<any>>(API_ENDPOINTS.ADMIN_ORDERS, data);
+  // Transform frontend format to Laravel API format
+  const payload = transformToLaravelOrderPayload(data, 'in-store');
+  const response = await api.post<ApiResponse<any>>(API_ENDPOINTS.ADMIN_ORDERS, payload);
   return {
     ...response.data,
     data: transformLaravelOrder(response.data.data),
@@ -55,7 +92,7 @@ const create = async (data: Omit<Order, 'id' | 'createdAt' | 'order_number'>): P
 };
 
 const markInProgress = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.put<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/mark-in-progress`);
+  const response = await api.patch<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/mark-in-progress`);
   return {
     ...response.data,
     data: transformLaravelOrder(response.data.data),
@@ -68,7 +105,7 @@ const updateStatus = async (id: string, status: OrderStatus): Promise<ApiRespons
   else if (status === 'cancelled') endpoint += '/cancel';
   else throw new Error('Invalid status for update');
 
-  const response = await api.put<ApiResponse<any>>(endpoint);
+  const response = await api.patch<ApiResponse<any>>(endpoint);
   return {
     ...response.data,
     data: transformLaravelOrder(response.data.data),
@@ -76,7 +113,7 @@ const updateStatus = async (id: string, status: OrderStatus): Promise<ApiRespons
 };
 
 const archive = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.put<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/archive`);
+  const response = await api.post<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/archive`);
   return {
     ...response.data,
     data: transformLaravelOrder(response.data.data),
@@ -84,7 +121,7 @@ const archive = async (id: string): Promise<ApiResponse<Order>> => {
 };
 
 const unarchive = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.put<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/unarchive`);
+  const response = await api.patch<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/unarchive`);
   return {
     ...response.data,
     data: transformLaravelOrder(response.data.data),

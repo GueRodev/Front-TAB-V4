@@ -9,11 +9,17 @@ import type { Order, OrderItem } from '../types';
  * Laravel → Frontend: Transform Laravel API order to frontend format
  */
 export function transformLaravelOrder(laravelOrder: any): Order {
+  // Normalize order_type: backend may send "in_store" but frontend uses "in-store"
+  let orderType = laravelOrder.order_type as string;
+  if (orderType === 'in_store') {
+    orderType = 'in-store';
+  }
+
   return {
     id: String(laravelOrder.id),
     order_number: laravelOrder.order_number,
     user_id: laravelOrder.user_id ? String(laravelOrder.user_id) : undefined,
-    type: laravelOrder.order_type,
+    type: orderType as Order['type'],
     status: laravelOrder.status,
     items: laravelOrder.items?.map(transformLaravelOrderItem) || [],
     subtotal: Number(laravelOrder.subtotal),
@@ -42,6 +48,13 @@ export function transformLaravelOrder(laravelOrder: any): Order {
 
 /**
  * Frontend → Laravel: Transform frontend order data to Laravel API format
+ *
+ * El backend acepta 3 formas de enviar dirección:
+ * 1. address_id: ID de una dirección guardada del usuario
+ * 2. shipping_address con IDs: { province_id, canton_id, district_id, address_details }
+ * 3. shipping_address con nombres: { province, canton, district, address_details }
+ *
+ * El frontend usa nombres (via LocationSelector), así que enviamos opción 3.
  */
 export function transformToLaravelOrderPayload(
   orderData: any,
@@ -55,19 +68,26 @@ export function transformToLaravelOrderPayload(
     payment_method: orderData.paymentMethod,
     notes: orderData.notes || null,
     items: orderData.items.map((item: any) => ({
-      product_id: item.product_id || item.id,
+      product_id: Number(item.product_id) || Number(item.id),
       quantity: item.quantity,
     })),
   };
 
-  // Add shipping_address only for online + delivery
-  if (orderType === 'online' && orderData.deliveryOption === 'delivery' && orderData.delivery_address) {
-    payload.shipping_address = {
-      province: orderData.delivery_address.province,
-      canton: orderData.delivery_address.canton,
-      district: orderData.delivery_address.district,
-      address_details: orderData.delivery_address.address,
-    };
+  // Add address only for online + delivery
+  if (orderType === 'online' && orderData.deliveryOption === 'delivery') {
+    // Option 1: Use saved address ID if available
+    if (orderData.address_id) {
+      payload.address_id = Number(orderData.address_id);
+    }
+    // Option 2/3: Use shipping_address with names
+    else if (orderData.delivery_address) {
+      payload.shipping_address = {
+        province: orderData.delivery_address.province,
+        canton: orderData.delivery_address.canton,
+        district: orderData.delivery_address.district,
+        address_details: orderData.delivery_address.address || orderData.delivery_address.address_details,
+      };
+    }
   }
 
   return payload;

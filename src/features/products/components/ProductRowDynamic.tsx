@@ -196,7 +196,7 @@ export const ProductRowDynamic = ({
             </Button>
 
             {(onAdjustStock || onViewHistory) && (
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
