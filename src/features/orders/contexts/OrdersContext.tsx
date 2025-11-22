@@ -12,47 +12,106 @@
  * - Las demás operaciones de stock las hace el backend automáticamente
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ordersService } from '../services';
 import { stockMovementsService } from '@/features/products/services';
 import type { Order, OrderStatus, OrderType } from '../types';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/config';
+import { useAuth } from '@/features/auth';
 
 interface OrdersContextType {
+  // Pedidos activos (pending, in_progress)
   orders: Order[];
+  isLoading: boolean;
+  refreshOrders: () => Promise<void>;
+
+  // Historial de pedidos (completed, cancelled, archived) - desde backend
+  historyOrders: Order[];
+  isLoadingHistory: boolean;
+  refreshHistory: () => Promise<void>;
+
+  // Acciones
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'order_number' | 'subtotal' | 'shipping_cost' | 'total' | 'updatedAt'>) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   markInProgress: (orderId: string) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   archiveOrder: (orderId: string) => Promise<void>;
   unarchiveOrder: (orderId: string) => Promise<void>;
+
+  // Filtros locales (para pedidos activos)
   getOrdersByType: (type: OrderType) => Order[];
   getArchivedOrders: () => Order[];
   getCompletedOrders: () => Order[];
+
+  // Filtros para historial (desde el estado historyOrders)
+  getHistoryOrders: () => Order[];
+  getOrdersByStatus: (status: OrderStatus) => Order[];
 }
 
 const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
 
 export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Estado para pedidos activos
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load orders from service on mount (only if authenticated)
+  // Estado para historial (desde backend con filtros)
+  const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const { user, isAuthenticated } = useAuth();
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+
+  // Function to load/refresh active orders (pending, in_progress)
+  const refreshOrders = useCallback(async () => {
+    // Only load orders if user is authenticated
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    if (!token || !isAuthenticated) {
+      setOrders([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Pass isAdmin to use correct endpoint
+      const loadedOrders = await ordersService.getAll(isAdmin);
+      setOrders(loadedOrders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      setOrders([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, isAdmin]);
+
+  // Function to load/refresh history orders from backend (completed, cancelled, archived)
+  const refreshHistory = useCallback(async () => {
+    // Only load if user is admin
+    if (!isAuthenticated || !isAdmin) {
+      setHistoryOrders([]);
+      return;
+    }
+
+    setIsLoadingHistory(true);
+    try {
+      // Usa el servicio que hace llamadas paralelas al backend con filtros
+      const history = await ordersService.getHistory();
+      setHistoryOrders(history);
+    } catch (error) {
+      console.error('Error loading order history:', error);
+      setHistoryOrders([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [isAuthenticated, isAdmin]);
+
+  // Load orders when user changes (login/logout/switch user)
   useEffect(() => {
-    const loadOrders = async () => {
-      // Only load orders if user is authenticated (has token)
-      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-      if (!token) return;
-
-      try {
-        const loadedOrders = await ordersService.getAll();
-        setOrders(loadedOrders);
-      } catch (error) {
-        console.error('Error loading orders:', error);
-      }
-    };
-    loadOrders();
-  }, []);
+    refreshOrders();
+  }, [user?.id, isAuthenticated, refreshOrders]);
 
   const addOrder = async (
     orderData: Omit<Order, 'id' | 'createdAt' | 'order_number' | 'subtotal' | 'shipping_cost' | 'total' | 'updatedAt'>
@@ -116,9 +175,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 8. Update local state
       setOrders(prev => [result.data, ...prev]);
 
-      toast.success('Pedido creado', {
-        description: `Pedido #${result.data.order_number} creado exitosamente`,
-      });
+      // Nota: No mostramos toast aquí, lo hace el hook que llama a addOrder
 
       return result.data.id;
     } catch (error) {
@@ -168,14 +225,9 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         )
       );
 
-      toast.success('Estado actualizado', {
-        description: `Pedido actualizado a "${status}"`,
-      });
+      // Nota: No mostramos toast aquí, lo hace el hook useOrdersAdmin
     } catch (error) {
       console.error('Error updating order status:', error);
-      toast.error('Error', {
-        description: 'No se pudo actualizar el estado',
-      });
       throw error;
     }
   };
@@ -273,17 +325,44 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
+  // Obtener historial desde el estado (cargado desde backend con filtros)
+  const getHistoryOrders = (): Order[] => {
+    return historyOrders;
+  };
+
+  // Filtrar historial por status específico (desde historyOrders)
+  const getOrdersByStatus = (status: OrderStatus): Order[] => {
+    if (status === 'archived') {
+      return historyOrders.filter(order => order.status === 'archived' || order.archived);
+    }
+    return historyOrders.filter(order => order.status === status && !order.archived);
+  };
+
   const value: OrdersContextType = {
+    // Pedidos activos
     orders,
+    isLoading,
+    refreshOrders,
+
+    // Historial desde backend
+    historyOrders,
+    isLoadingHistory,
+    refreshHistory,
+
+    // Acciones
     addOrder,
     updateOrderStatus,
     markInProgress,
     deleteOrder,
     archiveOrder,
     unarchiveOrder,
+
+    // Filtros
     getOrdersByType,
     getArchivedOrders,
     getCompletedOrders,
+    getHistoryOrders,
+    getOrdersByStatus,
   };
 
   return (

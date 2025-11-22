@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useCartOperations, CartItemsList, EmptyCart, CartSummary, OrderForm, AddressConfirmationDialog } from '@/features/cart';
+import { useCartOperations, CartItemsList, EmptyCart, CartSummary, OrderForm, AddressConfirmationDialog, OrderConfirmationDialog } from '@/features/cart';
 import { Header, Footer } from '@/components/layout';
 import { useOrderForm, AddressSelector } from '@/features/orders';
 
@@ -33,20 +33,26 @@ const Cart = () => {
     submitOrder,
   } = useOrderForm();
 
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showAddressConfirmation, setShowAddressConfirmation] = useState(false);
+  const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
 
   const handleSubmit = () => {
-    // Si es envío a domicilio, mostrar confirmación primero
     if (deliveryOption === 'delivery' && deliveryAddress) {
-      setShowConfirmation(true);
+      // Si es envío a domicilio, mostrar confirmación de dirección
+      setShowAddressConfirmation(true);
     } else {
-      // Si es pickup, procesar directamente
-      submitOrder();
+      // Si es pickup, mostrar confirmación de pedido
+      setShowOrderConfirmation(true);
     }
   };
 
   const handleConfirmAddress = () => {
-    setShowConfirmation(false);
+    setShowAddressConfirmation(false);
+    submitOrder();
+  };
+
+  const handleConfirmOrder = () => {
+    setShowOrderConfirmation(false);
     submitOrder();
   };
 
@@ -121,10 +127,19 @@ const Cart = () => {
       </section>
 
       <AddressConfirmationDialog
-        open={showConfirmation}
-        onOpenChange={setShowConfirmation}
+        open={showAddressConfirmation}
+        onOpenChange={setShowAddressConfirmation}
         address={deliveryAddress}
         onConfirm={handleConfirmAddress}
+      />
+
+      <OrderConfirmationDialog
+        open={showOrderConfirmation}
+        onOpenChange={setShowOrderConfirmation}
+        deliveryOption={deliveryOption}
+        items={items}
+        totalPrice={totalPrice}
+        onConfirm={handleConfirmOrder}
       />
 
       <Footer />

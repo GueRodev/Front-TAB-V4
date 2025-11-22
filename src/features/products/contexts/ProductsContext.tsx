@@ -8,6 +8,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Product, AdjustStockDto, CreateProductDto, UpdateProductDto } from '../types';
 import { productsService } from '../services';
 import { STORAGE_KEYS } from '@/config';
+import { useAuth } from '@/features/auth';
 
 interface ProductsContextType {
   products: Product[];
@@ -31,8 +32,12 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletedCount, setDeletedCount] = useState(0);
+  const { user } = useAuth();
 
-  // Load products and deleted count on mount
+  // Check if user is admin
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+
+  // Load products and deleted count on mount or when user changes
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
@@ -40,11 +45,12 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const result = await productsService.getAll();
         setProducts(result.data); // Extract data from paginated response
 
-        // Only load deleted count if user is authenticated (has token)
-        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-        if (token) {
+        // Only load deleted count if user is admin
+        if (isAdmin) {
           const deletedResult = await productsService.getDeleted();
           setDeletedCount(deletedResult.data.length);
+        } else {
+          setDeletedCount(0);
         }
       } catch (error) {
         console.error('Error loading products:', error);
@@ -53,7 +59,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
     loadProducts();
-  }, []);
+  }, [isAdmin]);
 
   const addProduct = async (productData: CreateProductDto): Promise<Product> => {
     setLoading(true);

@@ -6,17 +6,25 @@
 import { z } from 'zod';
 
 /**
+ * Valid payment methods
+ */
+const VALID_PAYMENT_METHODS = ['cash', 'card', 'transfer', 'sinpe'] as const;
+const VALID_DELIVERY_OPTIONS = ['pickup', 'delivery'] as const;
+
+/**
  * Base schema shared between order types
  */
 const baseOrderSchema = z.object({
   customerName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   customerPhone: z.string().min(8, 'El teléfono debe tener al menos 8 dígitos'),
-  deliveryOption: z.enum(['pickup', 'delivery'], {
-    required_error: 'Selecciona un tipo de entrega',
-  }),
-  paymentMethod: z.enum(['cash', 'card', 'transfer', 'sinpe'], {
-    required_error: 'Selecciona un método de pago',
-  }),
+  deliveryOption: z.string().refine(
+    (val) => VALID_DELIVERY_OPTIONS.includes(val as typeof VALID_DELIVERY_OPTIONS[number]),
+    { message: 'Selecciona un tipo de entrega' }
+  ),
+  paymentMethod: z.string().refine(
+    (val) => VALID_PAYMENT_METHODS.includes(val as typeof VALID_PAYMENT_METHODS[number]),
+    { message: 'Selecciona un método de pago' }
+  ),
   notes: z.string().max(1000, 'Las notas no pueden exceder 1000 caracteres').optional(),
 });
 
@@ -94,10 +102,11 @@ export const inStoreOrderSchema = z.object({
     .optional()
     .or(z.literal('')),
   
-  paymentMethod: z.enum(['cash', 'card', 'transfer', 'sinpe'], {
-    required_error: 'Selecciona un método de pago',
-  }),
-  
+  paymentMethod: z.string().refine(
+    (val) => VALID_PAYMENT_METHODS.includes(val as typeof VALID_PAYMENT_METHODS[number]),
+    { message: 'Selecciona un método de pago' }
+  ),
+
   notes: z.string().max(1000, 'Las notas no pueden exceder 1000 caracteres').optional(),
 });
 

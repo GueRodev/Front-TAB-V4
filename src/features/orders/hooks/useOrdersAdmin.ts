@@ -40,6 +40,7 @@ interface UseOrdersAdminReturn {
   // Order data
   onlineOrders: Order[];
   inStoreOrders: Order[];
+  isLoading: boolean;
 
   // In-store cart (múltiples productos)
   cartItems: InStoreCartItem[];
@@ -128,7 +129,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
   });
 
   // Get data from contexts
-  const { getOrdersByType, addOrder, deleteOrder, updateOrderStatus } = useOrders();
+  const { getOrdersByType, addOrder, deleteOrder, updateOrderStatus, isLoading } = useOrders();
   const { products } = useProducts();
   const { categories } = useCategories();
   const { addNotification } = useNotifications();
@@ -541,6 +542,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     // Order data
     onlineOrders,
     inStoreOrders,
+    isLoading,
 
     // In-store cart
     cartItems,

@@ -9,14 +9,14 @@ import { AdminSidebar, AdminHeader } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCategories } from '@/features/categories';
-import { 
-  useOrdersAdmin, 
-  OrdersList, 
-  InStoreOrderForm, 
-  PaymentConfirmationDialog 
+import {
+  useOrdersAdmin,
+  OrdersList,
+  InStoreOrderForm,
+  PaymentConfirmationDialog
 } from '@/features/orders';
 import { DeleteConfirmDialog } from '@/components/common';
-import { ShoppingCart, Store, History, Eye } from 'lucide-react';
+import { ShoppingCart, Store, History, Eye, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
@@ -34,6 +34,7 @@ const AdminOrders = () => {
     // Order data
     onlineOrders,
     inStoreOrders,
+    isLoading,
 
     // In-store cart
     cartItems,
@@ -156,17 +157,24 @@ const AdminOrders = () => {
               
               <Card>
                 <CardContent className="p-3 md:p-4 lg:p-6">
-                  <OrdersList
-                    orders={visibleOnlineOrders}
-                    showDeliveryInfo={true}
-                    emptyMessage="No hay pedidos online aún"
-                    emptyIcon={<ShoppingCart className="h-10 w-10 md:h-12 md:w-12 opacity-30" />}
-                    onHide={handleHideOrder}
-                    onDelete={openDeleteOrderDialog}
-                    onComplete={handleCompleteOrder}
-                    onCancel={handleCancelOrder}
-                    onCompleteWithConfirmation={openPaymentConfirmDialog}
-                  />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Cargando pedidos...</span>
+                    </div>
+                  ) : (
+                    <OrdersList
+                      orders={visibleOnlineOrders}
+                      showDeliveryInfo={true}
+                      emptyMessage="No hay pedidos online aún"
+                      emptyIcon={<ShoppingCart className="h-10 w-10 md:h-12 md:w-12 opacity-30" />}
+                      onHide={handleHideOrder}
+                      onDelete={openDeleteOrderDialog}
+                      onComplete={handleCompleteOrder}
+                      onCancel={handleCancelOrder}
+                      onCompleteWithConfirmation={openPaymentConfirmDialog}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -227,7 +235,14 @@ const AdminOrders = () => {
 
                 {/* In-Store Orders List */}
                 <div className="lg:col-span-1 xl:col-span-2">
-                  {visibleInStoreOrders.length === 0 ? (
+                  {isLoading ? (
+                    <Card>
+                      <CardContent className="py-8 md:py-12 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <span className="ml-2 text-muted-foreground">Cargando...</span>
+                      </CardContent>
+                    </Card>
+                  ) : visibleInStoreOrders.length === 0 ? (
                     <Card>
                       <CardContent className="py-8 md:py-12 text-center text-muted-foreground">
                         <Store className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-2 opacity-30" />

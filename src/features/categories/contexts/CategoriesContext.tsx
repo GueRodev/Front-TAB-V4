@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Category, Subcategory, CreateCategoryDto, UpdateCategoryDto, CreateSubcategoryDto, UpdateSubcategoryDto } from '../types';
 import { categoriesService } from '../services';
 import { STORAGE_KEYS } from '@/config';
+import { useAuth } from '@/features/auth';
 
 // Re-export types for backward compatibility
 export type { Category, Subcategory } from '../types';
@@ -87,17 +88,20 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletedCount, setDeletedCount] = useState(0);
+  const { user } = useAuth();
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
   // Load categories from API on mount
   useEffect(() => {
     syncWithAPI();
-    // Only fetch recycle bin count if user is authenticated (has token)
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    if (token) {
-      refreshDeletedCount(); // Pre-load deleted count for badge
+    // Only fetch recycle bin count if user is admin
+    if (isAdmin) {
+      refreshDeletedCount();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdmin]);
 
   /**
    * Sync categories with Laravel API

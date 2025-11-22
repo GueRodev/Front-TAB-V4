@@ -24,6 +24,7 @@ export {
   useOrdersAdmin,
   useOrdersHistory
 } from './hooks';
+export type { HistoryTab } from './hooks/useOrdersHistory';
 
 // Context
 export { OrdersProvider, useOrders } from './contexts';

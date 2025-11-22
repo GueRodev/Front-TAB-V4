@@ -174,11 +174,12 @@ export const useOrderForm = () => {
 
   /**
    * Build WhatsApp message with order details
+   * Uses emojis for visual appeal
    */
   const buildWhatsAppMessage = (orderId: string): string => {
     // Build detailed product list
     const items = cart.map(item => {
-      let productLine = `• *${item.name}*`;
+      let productLine = `🔹 *${item.name}*`;
 
       // Add category and brand if available
       const details: string[] = [];
@@ -187,41 +188,42 @@ export const useOrderForm = () => {
       if (item.sku) details.push(`SKU: ${item.sku}`);
 
       if (details.length > 0) {
-        productLine += `\n  _${details.join(' | ')}_`;
+        productLine += `\n     _${details.join(' | ')}_`;
       }
 
-      productLine += `\n  Cantidad: ${item.quantity} | Precio: ₡${item.price.toLocaleString('es-CR')} | Subtotal: ₡${(item.price * item.quantity).toLocaleString('es-CR')}`;
+      productLine += `\n     ${item.quantity} x ₡${item.price.toLocaleString('es-CR')} = *₡${(item.price * item.quantity).toLocaleString('es-CR')}*`;
 
       return productLine;
     }).join('\n\n');
 
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    // Get payment method label
+    // Get payment method label with emoji
     const paymentLabels: Record<string, string> = {
-      'cash': 'Efectivo',
-      'card': 'Tarjeta',
-      'transfer': 'Transferencia',
-      'sinpe': 'SINPE Móvil',
+      'cash': '💵 Efectivo',
+      'card': '💳 Tarjeta',
+      'transfer': '🏦 Transferencia',
+      'sinpe': '📱 SINPE Móvil',
     };
     const paymentLabel = paymentLabels[paymentMethod] || paymentMethod;
 
     let message = `🛒 *NUEVO PEDIDO #${orderId}*\n`;
-    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    message += `═══════════════════════\n\n`;
 
     message += `👤 *DATOS DEL CLIENTE*\n`;
     message += `• Nombre: ${formData.customerName}\n`;
     message += `• Teléfono: ${formData.customerPhone}\n`;
     if (formData.customerEmail) {
-      message += `• Correo: ${formData.customerEmail}\n`;
+      message += `• Email: ${formData.customerEmail}\n`;
     }
+    message += `\n`;
 
-    message += `\n📦 *PRODUCTOS*\n`;
+    message += `📦 *PRODUCTOS*\n`;
     message += `${items}\n\n`;
 
-    message += `━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `═══════════════════════\n`;
     message += `💰 *TOTAL: ₡${total.toLocaleString('es-CR')}*\n`;
-    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    message += `═══════════════════════\n\n`;
 
     if (deliveryOption === 'delivery' && deliveryAddress) {
       message += `🚚 *ENTREGA A DOMICILIO*\n`;
@@ -235,8 +237,19 @@ export const useOrderForm = () => {
 
     message += `💳 *Método de pago:* ${paymentLabel}`;
 
-    // Encode the message for URL
-    return encodeURIComponent(message);
+    return message;
+  };
+
+  /**
+   * Open WhatsApp with the order message
+   * Uses URL constructor to properly handle emojis
+   */
+  const openWhatsApp = (orderId: string) => {
+    const message = buildWhatsAppMessage(orderId);
+    const url = new URL(`https://api.whatsapp.com/send`);
+    url.searchParams.set('phone', WHATSAPP_CONFIG.phoneNumber);
+    url.searchParams.set('text', message);
+    window.open(url.toString(), '_blank');
   };
 
   /**
@@ -292,10 +305,8 @@ export const useOrderForm = () => {
         time: 'Ahora',
       });
 
-      // Build WhatsApp message and open chat
-      const message = buildWhatsAppMessage(orderId);
-      const whatsappUrl = `https://wa.me/${WHATSAPP_CONFIG.phoneNumber}?text=${message}`;
-      window.open(whatsappUrl, '_blank');
+      // Open WhatsApp with order details
+      openWhatsApp(orderId);
 
       // Clear cart and reset form
       clearCart();
@@ -305,11 +316,22 @@ export const useOrderForm = () => {
         title: "Pedido enviado",
         description: "Tu pedido ha sido enviado correctamente",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error);
+
+      // Extract error message from backend response if available
+      let errorMessage = "No se pudo crear el pedido. Intenta de nuevo.";
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Error",
-        description: "No se pudo crear el pedido. Intenta de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

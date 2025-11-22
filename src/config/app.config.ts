@@ -9,10 +9,13 @@
 export const WHATSAPP_CONFIG = {
   phoneNumber: "50689176111",
   countryCode: "+506",
-  
+
+  // Uses URL constructor for proper emoji support
   buildChatUrl: (message: string): string => {
-    const encodedMessage = encodeURIComponent(message);
-    return `https://wa.me/50689176111?text=${encodedMessage}`;
+    const url = new URL('https://api.whatsapp.com/send');
+    url.searchParams.set('phone', '50689176111');
+    url.searchParams.set('text', message);
+    return url.toString();
   },
 } as const;
 
