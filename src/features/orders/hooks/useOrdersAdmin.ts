@@ -130,7 +130,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   // Get data from contexts
   const { getOrdersByType, addOrder, deleteOrder, updateOrderStatus, isLoading } = useOrders();
-  const { products } = useProducts();
+  const { products, refreshProducts } = useProducts();
   const { categories } = useCategories();
   const { addNotification } = useNotifications();
   
@@ -349,6 +349,9 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     try {
       const orderId = await addOrder(orderData);
 
+      // Refrescar productos para actualizar el stock en la UI (reserva de stock)
+      await refreshProducts();
+
       addNotification({
         type: 'order',
         title: 'Pedido pendiente',
@@ -407,6 +410,9 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Backend libera el stock automáticamente
       await deleteOrder(deleteOrderDialog.orderId);
 
+      // Refrescar productos para actualizar el stock en la UI (stock liberado)
+      await refreshProducts();
+
       addNotification({
         type: 'order',
         title: 'Pedido eliminado',
@@ -460,6 +466,9 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Backend automáticamente confirma la venta y descuenta el stock real
       await updateOrderStatus(order.id, 'completed');
 
+      // Refrescar productos para actualizar el stock en la UI
+      await refreshProducts();
+
       addNotification({
         type: 'order',
         title: 'Pedido completado',
@@ -491,6 +500,9 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Backend automáticamente confirma la venta y descuenta el stock real
       await updateOrderStatus(order.id, 'completed');
 
+      // Refrescar productos para actualizar el stock en la UI
+      await refreshProducts();
+
       addNotification({
         type: 'order',
         title: 'Pedido completado',
@@ -513,10 +525,14 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   /**
    * Cancel order
+   * NOTA: El backend libera el stock automáticamente al cancelar
    */
   const handleCancelOrder = async (order: Order) => {
     try {
       await updateOrderStatus(order.id, 'cancelled');
+
+      // Refrescar productos para actualizar el stock en la UI (stock liberado)
+      await refreshProducts();
 
       addNotification({
         type: 'order',

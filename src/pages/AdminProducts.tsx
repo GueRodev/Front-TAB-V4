@@ -43,6 +43,10 @@ const AdminProducts = () => {
     filterSummary,
     loading,
 
+    // Pagination
+    pagination,
+    goToPage,
+
     // Filters
     searchQuery,
     setSearchQuery,
@@ -108,7 +112,10 @@ const AdminProducts = () => {
                     Gestión de Productos
                   </h1>
                   <p className="text-gray-600 text-sm md:text-base lg:text-lg">
-                    {filterSummary.resultCount} de {filterSummary.totalCount} productos
+                    {filterSummary.hasActiveFilters
+                      ? `${filterSummary.resultCount} de ${pagination.totalItems} productos (filtrados)`
+                      : `${pagination.totalItems} productos en total`
+                    }
                   </p>
                 </div>
                 <div className="flex justify-center sm:justify-start">
@@ -162,7 +169,7 @@ const AdminProducts = () => {
                     <CardContent className="p-4 md:p-6">
                       <div className="mb-4">
                         <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                          Productos ({filteredProducts.length})
+                          Productos ({pagination.totalItems})
                         </h3>
                       </div>
 
@@ -175,6 +182,8 @@ const AdminProducts = () => {
                         onAdjustStock={openAdjustStockDialog}
                         onViewHistory={openHistoryDialog}
                         loading={loading}
+                        pagination={pagination}
+                        onPageChange={goToPage}
                       />
                     </CardContent>
                   </Card>

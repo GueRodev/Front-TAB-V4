@@ -68,20 +68,48 @@ const getAll = async (isAdmin: boolean = false, filters?: OrderFilters): Promise
 };
 
 /**
- * Get orders for history (completed, cancelled, archived)
- * 🔗 LARAVEL: Multiple calls to GET /api/admin/orders?status=X
+ * Get trashed (soft deleted) orders
+ * 🔗 LARAVEL: GET /api/admin/orders-trashed
+ */
+const getTrashed = async (): Promise<Order[]> => {
+  try {
+    const response = await api.get<any>(API_ENDPOINTS.ADMIN_ORDERS_TRASHED);
+    const ordersData = extractOrdersData(response.data);
+    return ordersData.map(transformLaravelOrder);
+  } catch (error) {
+    console.error('Error fetching trashed orders:', error);
+    return [];
+  }
+};
+
+/**
+ * Restore a trashed order
+ * 🔗 LARAVEL: PATCH /api/admin/orders/{id}/restore
+ */
+const restore = async (id: string): Promise<ApiResponse<Order>> => {
+  const response = await api.patch<ApiResponse<any>>(API_ENDPOINTS.ADMIN_ORDER_RESTORE(id));
+  return {
+    ...response.data,
+    data: transformLaravelOrder(response.data.data),
+  };
+};
+
+/**
+ * Get orders for history (completed, cancelled, archived, deleted)
+ * 🔗 LARAVEL: Multiple calls to GET /api/admin/orders?status=X + /api/admin/orders-trashed
  */
 const getHistory = async (): Promise<Order[]> => {
   try {
-    // Hacer llamadas paralelas para cada status del historial
-    const [completed, cancelled, archived] = await Promise.all([
+    // Hacer llamadas paralelas para cada status del historial + eliminados
+    const [completed, cancelled, archived, trashed] = await Promise.all([
       getAll(true, { status: 'completed' }),
       getAll(true, { status: 'cancelled' }),
       getAll(true, { status: 'archived' }),
+      getTrashed(),
     ]);
 
     // Combinar y ordenar por fecha (más recientes primero)
-    const allHistory = [...completed, ...cancelled, ...archived];
+    const allHistory = [...completed, ...cancelled, ...archived, ...trashed];
     return allHistory.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -190,6 +218,7 @@ export const ordersService = {
   getArchived,
   getHistory,
   getByStatus,
+  getTrashed,
   create,
   createOnlineOrder,
   createInStoreOrder,
@@ -197,5 +226,6 @@ export const ordersService = {
   updateStatus,
   archive,
   unarchive,
+  restore,
   deleteOrder,
 };

@@ -31,11 +31,24 @@ interface DeleteProductDialog {
   productName: string;
 }
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface UseProductsAdminReturn {
   // Products data
   products: Product[];
   categories: ReturnType<typeof useCategories>['categories'];
-  
+
+  // Pagination
+  pagination: PaginationInfo;
+  goToPage: (page: number) => Promise<void>;
+
   // Filters (delegated to useProductFilters)
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -78,7 +91,7 @@ interface UseProductsAdminReturn {
 }
 
 export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean } => {
-  const { products, loading, addProduct, updateProduct, deleteProduct, toggleFeatured } = useProducts();
+  const { products, loading, pagination, goToPage, addProduct, updateProduct, deleteProduct, toggleFeatured } = useProducts();
   const { categories } = useCategories();
   const { addNotification } = useNotifications();
 
@@ -298,6 +311,10 @@ export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean 
     products,
     categories,
     loading,
+
+    // Pagination
+    pagination,
+    goToPage,
 
     // Filters (delegated to useProductFilters)
     searchQuery,

@@ -6,7 +6,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Archive, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Archive, Trash2, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import type { Order } from '../types';
 
@@ -18,6 +18,7 @@ interface OrdersTableProps {
   onDelete?: (orderId: string, order: Order) => void;
   onComplete?: (order: Order) => void;
   onCancel?: (order: Order) => void;
+  onRestore?: (orderId: string) => void;
 }
 
 export const OrdersTable: React.FC<OrdersTableProps> = ({
@@ -28,6 +29,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
   onDelete,
   onComplete,
   onCancel,
+  onRestore,
 }) => {
   if (orders.length === 0) {
     return (
@@ -76,7 +78,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                 </Badge>
               </TableCell>
               <TableCell>
-                <OrderStatusBadge status={order.status} />
+                <OrderStatusBadge status={order.status} deletedAt={order.deleted_at} />
               </TableCell>
               <TableCell className="text-right font-semibold">
                 ₡{order.total.toLocaleString('es-CR')}
@@ -132,6 +134,17 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                         className="h-8 w-8 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {order.deleted_at && onRestore && (
+                      <Button
+                        onClick={() => onRestore(order.id)}
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        title="Restaurar pedido"
+                      >
+                        <RotateCcw className="h-4 w-4" />
                       </Button>
                     )}
                   </div>

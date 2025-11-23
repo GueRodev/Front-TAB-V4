@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  Package, 
-  FolderTree, 
-  Users, 
-  ShoppingCart, 
-  Settings, 
+import {
+  BarChart3,
+  Package,
+  FolderTree,
+  Users,
+  ShoppingCart,
+  Settings,
   LogOut,
   Package2,
   User
@@ -41,7 +41,16 @@ const footerItems = [
 export function AdminSidebar() {
   const { state, open, isMobile, openMobile } = useSidebar();
   const isCollapsed = isMobile ? !openMobile : (state === "collapsed" && !open);
-  
+  const location = useLocation();
+
+  // Función para verificar si una ruta está activa
+  const isActiveRoute = (url: string) => {
+    if (url === '/admin') {
+      return location.pathname === '/admin';
+    }
+    return location.pathname.startsWith(url);
+  };
+
   const [customLogo, setCustomLogo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,8 +67,8 @@ export function AdminSidebar() {
   }, []);
 
   return (
-    <Sidebar 
-      className="!bg-[#1A1F2C] border-none z-50" 
+    <Sidebar
+      className="!bg-[#1A1F2C] border-none z-50"
       style={{ backgroundColor: '#1A1F2C' }}
       collapsible="icon"
     >
@@ -69,9 +78,9 @@ export function AdminSidebar() {
       }`}>
         {customLogo ? (
           <Link to="/admin" className="flex items-center justify-center">
-            <img 
-              src={customLogo} 
-              alt="Logo Admin" 
+            <img
+              src={customLogo}
+              alt="Logo Admin"
               className={`object-contain transition-all duration-300 ${isCollapsed ? 'h-10 w-10' : 'h-12'}`}
             />
           </Link>
@@ -83,8 +92,8 @@ export function AdminSidebar() {
               <Package2 className="h-6 w-6 text-white" strokeWidth={2.5} />
             </div>
             <div className={`flex flex-col leading-tight transition-all duration-300 ${
-              isCollapsed 
-                ? 'w-0 opacity-0 scale-0' 
+              isCollapsed
+                ? 'w-0 opacity-0 scale-0'
                 : 'w-auto opacity-100 scale-100 ml-0'
             }`}>
               <span className="text-white font-bold text-base tracking-wide whitespace-nowrap">TOYS AND</span>
@@ -94,7 +103,7 @@ export function AdminSidebar() {
         )}
       </div>
 
-      <SidebarContent className="!bg-[#1A1F2C]" style={{ backgroundColor: '#1A1F2C' }}>
+      <SidebarContent className="!bg-[#1A1F2C] flex-1 overflow-y-auto" style={{ backgroundColor: '#1A1F2C' }}>
         <SidebarGroup className="bg-[#1A1F2C]">
           {!isCollapsed && (
             <SidebarGroupLabel className="text-white/70 text-xs font-semibold uppercase tracking-wider px-4 py-3 transition-all duration-300">
@@ -105,9 +114,10 @@ export function AdminSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    className="text-white hover:bg-[#F97316]/20 hover:text-[#F97316] data-[active=true]:bg-[#F97316] data-[active=true]:text-white px-4 py-3 transition-all duration-200"
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActiveRoute(item.url)}
+                    className="text-white hover:bg-[#F97316]/20 hover:text-[#F97316] data-[active=true]:bg-[#F97316]/20 data-[active=true]:text-[#F97316] px-4 py-3 transition-all duration-200"
                     tooltip={isCollapsed ? item.title : undefined}
                   >
                     <Link to={item.url} className="flex items-center gap-3">
@@ -126,43 +136,45 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* User Section - TODO: Aquí se implementa el nombre del usuario logueado */}
-      <div className="!bg-[#1A1F2C] border-t border-white/10 p-4" style={{ backgroundColor: '#1A1F2C' }}>
-        <Link 
-          to="/admin/profile" 
-          className={`flex items-center p-2 rounded-lg hover:bg-white/5 transition-all duration-300 ${
-            isCollapsed ? 'gap-0 justify-center' : 'gap-3'
-          }`}
-        >
-          <Avatar className="h-10 w-10 border-2 border-white/10 flex-shrink-0">
-            <AvatarImage src="" alt="Admin" />
-            <AvatarFallback className="bg-[#F97316] text-white font-semibold">
-              AD
-            </AvatarFallback>
-          </Avatar>
-          <div className={`flex flex-col min-w-0 flex-1 transition-all duration-300 ${
-            isCollapsed 
-              ? 'w-0 opacity-0 scale-0' 
-              : 'w-auto opacity-100 scale-100'
-          }`}>
-            <span className="text-white text-sm font-medium truncate whitespace-nowrap">
-              Admin Usuario
-            </span>
-            <span className="text-white/60 text-xs truncate whitespace-nowrap">
-              admin@toysandbricks.com
-            </span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Footer Section */}
+      {/* Footer Section - Usuario + Configuración + Cerrar Sesión */}
       <SidebarFooter className="!bg-[#1A1F2C] border-t border-white/10" style={{ backgroundColor: '#1A1F2C' }}>
+        {/* User Section */}
+        <div className="p-3 border-b border-white/10">
+          <Link
+            to="/admin/profile"
+            className={`flex items-center p-2 rounded-lg hover:bg-white/5 transition-all duration-300 ${
+              isCollapsed ? 'gap-0 justify-center' : 'gap-3'
+            }`}
+          >
+            <Avatar className="h-9 w-9 border-2 border-white/10 flex-shrink-0">
+              <AvatarImage src="" alt="Admin" />
+              <AvatarFallback className="bg-[#F97316] text-white font-semibold text-sm">
+                AD
+              </AvatarFallback>
+            </Avatar>
+            <div className={`flex flex-col min-w-0 flex-1 transition-all duration-300 ${
+              isCollapsed
+                ? 'w-0 opacity-0 scale-0 hidden'
+                : 'w-auto opacity-100 scale-100'
+            }`}>
+              <span className="text-white text-sm font-medium truncate whitespace-nowrap">
+                Admin Usuario
+              </span>
+              <span className="text-white/60 text-xs truncate whitespace-nowrap">
+                admin@toysandbricks.com
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* Menu Items */}
         <SidebarMenu>
           {footerItems.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton 
-                asChild 
-                className="text-white hover:bg-[#F97316]/20 hover:text-[#F97316] px-4 py-3 transition-all duration-200"
+              <SidebarMenuButton
+                asChild
+                isActive={isActiveRoute(item.url)}
+                className="text-white hover:bg-[#F97316]/20 hover:text-[#F97316] data-[active=true]:bg-[#F97316]/20 data-[active=true]:text-[#F97316] px-4 py-2.5 transition-all duration-200"
                 tooltip={isCollapsed ? item.title : undefined}
               >
                 <Link to={item.url} className="flex items-center gap-3">

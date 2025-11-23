@@ -26,7 +26,7 @@ interface OrdersContextType {
   isLoading: boolean;
   refreshOrders: () => Promise<void>;
 
-  // Historial de pedidos (completed, cancelled, archived) - desde backend
+  // Historial de pedidos (completed, cancelled, archived, deleted) - desde backend
   historyOrders: Order[];
   isLoadingHistory: boolean;
   refreshHistory: () => Promise<void>;
@@ -38,6 +38,7 @@ interface OrdersContextType {
   deleteOrder: (orderId: string) => Promise<void>;
   archiveOrder: (orderId: string) => Promise<void>;
   unarchiveOrder: (orderId: string) => Promise<void>;
+  restoreOrder: (orderId: string) => Promise<void>;
 
   // Filtros locales (para pedidos activos)
   getOrdersByType: (type: OrderType) => Order[];
@@ -47,6 +48,7 @@ interface OrdersContextType {
   // Filtros para historial (desde el estado historyOrders)
   getHistoryOrders: () => Order[];
   getOrdersByStatus: (status: OrderStatus) => Order[];
+  getTrashedOrders: () => Order[];
 }
 
 const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
@@ -311,6 +313,29 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
+  const restoreOrder = async (orderId: string): Promise<void> => {
+    try {
+      // Call service to restore trashed order
+      const result = await ordersService.restore(orderId);
+
+      // Add restored order to active orders
+      setOrders(prev => [result.data, ...prev]);
+
+      // Remove from history
+      setHistoryOrders(prev => prev.filter(order => order.id !== orderId));
+
+      toast.success('Pedido restaurado', {
+        description: 'El pedido ha sido restaurado exitosamente',
+      });
+    } catch (error) {
+      console.error('Error restoring order:', error);
+      toast.error('Error', {
+        description: 'No se pudo restaurar el pedido',
+      });
+      throw error;
+    }
+  };
+
   const getOrdersByType = (type: OrderType): Order[] => {
     return orders.filter(order => order.type === type && !order.archived);
   };
@@ -335,7 +360,12 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (status === 'archived') {
       return historyOrders.filter(order => order.status === 'archived' || order.archived);
     }
-    return historyOrders.filter(order => order.status === status && !order.archived);
+    return historyOrders.filter(order => order.status === status && !order.archived && !order.deleted_at);
+  };
+
+  // Obtener pedidos eliminados (soft deleted)
+  const getTrashedOrders = (): Order[] => {
+    return historyOrders.filter(order => order.deleted_at);
   };
 
   const value: OrdersContextType = {
@@ -356,6 +386,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     deleteOrder,
     archiveOrder,
     unarchiveOrder,
+    restoreOrder,
 
     // Filtros
     getOrdersByType,
@@ -363,6 +394,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     getCompletedOrders,
     getHistoryOrders,
     getOrdersByStatus,
+    getTrashedOrders,
   };
 
   return (

@@ -1,6 +1,6 @@
 /**
  * Orders History Business Logic Hook
- * Manages completed/cancelled/archived orders with filters and exports
+ * Manages completed/cancelled/archived/deleted orders with filters and exports
  * Usa datos del backend a través de OrdersContext
  */
 
@@ -9,7 +9,7 @@ import { useOrders } from '../contexts';
 import { exportOrdersToPDF, exportOrdersToExcel } from '../helpers';
 import type { Order, OrderType } from '../types';
 
-export type HistoryTab = 'all' | 'completed' | 'cancelled' | 'archived';
+export type HistoryTab = 'all' | 'completed' | 'cancelled' | 'archived' | 'deleted';
 
 interface DateRange {
   from: Date | null;
@@ -32,6 +32,7 @@ interface UseOrdersHistoryReturn {
     completed: number;
     cancelled: number;
     archived: number;
+    deleted: number;
   };
 
   // Filtros
@@ -50,6 +51,7 @@ interface UseOrdersHistoryReturn {
   clearFilters: () => void;
   hasActiveFilters: boolean;
   refreshHistory: () => Promise<void>;
+  restoreOrder: (orderId: string) => Promise<void>;
 }
 
 export const useOrdersHistory = (): UseOrdersHistoryReturn => {
@@ -59,6 +61,8 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     refreshHistory,
     getOrdersByStatus,
     getCompletedOrders,
+    getTrashedOrders,
+    restoreOrder,
   } = useOrders();
 
   // Cargar historial cuando se monta el hook
@@ -86,7 +90,8 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     completed: getOrdersByStatus('completed').length,
     cancelled: getOrdersByStatus('cancelled').length,
     archived: getOrdersByStatus('archived').length,
-  }), [allHistoryOrders, getOrdersByStatus]);
+    deleted: getTrashedOrders().length,
+  }), [allHistoryOrders, getOrdersByStatus, getTrashedOrders]);
 
   // Filtrar pedidos según tab activo y filtros adicionales
   const filteredOrders = useMemo(() => {
@@ -101,6 +106,9 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
         break;
       case 'archived':
         orders = getOrdersByStatus('archived');
+        break;
+      case 'deleted':
+        orders = getTrashedOrders();
         break;
       default:
         orders = allHistoryOrders;
@@ -145,7 +153,7 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     return orders.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [activeTab, allHistoryOrders, getOrdersByStatus, typeFilter, dateRange, searchQuery]);
+  }, [activeTab, allHistoryOrders, getOrdersByStatus, getTrashedOrders, typeFilter, dateRange, searchQuery]);
 
   // Verificar si hay filtros activos
   const hasActiveFilters = useMemo(() => {
@@ -199,5 +207,6 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     clearFilters,
     refreshHistory,
     hasActiveFilters,
+    restoreOrder,
   };
 };

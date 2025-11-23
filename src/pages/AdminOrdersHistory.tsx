@@ -29,13 +29,15 @@ import {
   Store,
   ShoppingCart,
   Loader2,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '@/components/common';
 import {
   useOrdersHistory,
   OrderCard,
-  OrdersTable,
+  OrdersTableDynamic,
   ExportButton,
   type HistoryTab,
 } from '@/features/orders';
@@ -58,6 +60,7 @@ const AdminOrdersHistory = () => {
     handleExportExcel,
     clearFilters,
     hasActiveFilters,
+    restoreOrder,
   } = useOrdersHistory();
 
   const tabConfig: { value: HistoryTab; label: string; icon: React.ReactNode; count: number }[] = [
@@ -65,6 +68,7 @@ const AdminOrdersHistory = () => {
     { value: 'completed', label: 'Completados', icon: <CheckCircle className="h-4 w-4" />, count: counts.completed },
     { value: 'cancelled', label: 'Cancelados', icon: <XCircle className="h-4 w-4" />, count: counts.cancelled },
     { value: 'archived', label: 'Archivados', icon: <Archive className="h-4 w-4" />, count: counts.archived },
+    { value: 'deleted', label: 'Eliminados', icon: <Trash2 className="h-4 w-4" />, count: counts.deleted },
   ];
 
   return (
@@ -111,18 +115,62 @@ const AdminOrdersHistory = () => {
                     onValueChange={(value) => setActiveTab(value as HistoryTab)}
                     className="w-full"
                   >
-                    <TabsList className="w-full grid grid-cols-4 h-auto p-1">
+                    {/* Mobile: 2 filas de tabs compactas */}
+                    <div className="md:hidden space-y-1">
+                      <TabsList className="w-full grid grid-cols-3 h-auto p-1">
+                        {tabConfig.slice(0, 3).map((tab) => (
+                          <TabsTrigger
+                            key={tab.value}
+                            value={tab.value}
+                            className="flex flex-col items-center gap-0.5 py-1.5 px-1 text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                          >
+                            {tab.icon}
+                            <span>{tab.label}</span>
+                            <span className="text-[9px] opacity-70">({tab.count})</span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      <TabsList className="w-full grid grid-cols-2 h-auto p-1">
+                        {tabConfig.slice(3).map((tab) => (
+                          <TabsTrigger
+                            key={tab.value}
+                            value={tab.value}
+                            className="flex flex-col items-center gap-0.5 py-1.5 px-1 text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                          >
+                            {tab.icon}
+                            <span>{tab.label}</span>
+                            <span className="text-[9px] opacity-70">({tab.count})</span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
+
+                    {/* Tablet: grid compacto de 5 columnas con solo iconos y contadores */}
+                    <TabsList className="hidden md:grid lg:hidden w-full grid-cols-5 h-auto p-1">
                       {tabConfig.map((tab) => (
                         <TabsTrigger
                           key={tab.value}
                           value={tab.value}
-                          className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                          className="flex flex-col items-center gap-0.5 py-2 px-1 text-[11px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                         >
                           {tab.icon}
-                          <span className="hidden sm:inline">{tab.label}</span>
-                          <span className="text-[10px] sm:text-xs opacity-70">
-                            ({tab.count})
-                          </span>
+                          <span className="truncate w-full text-center">{tab.label}</span>
+                          <span className="text-[10px] opacity-70">({tab.count})</span>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
+                    {/* Desktop: grid horizontal completo */}
+                    <TabsList className="hidden lg:grid w-full grid-cols-5 h-auto p-1">
+                      {tabConfig.map((tab) => (
+                        <TabsTrigger
+                          key={tab.value}
+                          value={tab.value}
+                          className="flex items-center justify-center gap-2 py-2 px-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                        >
+                          {tab.icon}
+                          <span>{tab.label}</span>
+                          <span className="text-xs opacity-70">({tab.count})</span>
                         </TabsTrigger>
                       ))}
                     </TabsList>
@@ -247,23 +295,36 @@ const AdminOrdersHistory = () => {
                   />
                 ) : (
                   <>
-                    {/* Vista Desktop/Tablet: OrdersTable */}
+                    {/* Vista Desktop/Tablet: OrdersTableDynamic */}
                     <div className="hidden lg:block">
-                      <OrdersTable
+                      <OrdersTableDynamic
                         orders={filteredOrders}
-                        showActions={false}
-                        compact={false}
+                        onRestore={activeTab === 'deleted' ? restoreOrder : undefined}
                       />
                     </div>
 
                     {/* Vista Mobile/Tablet: Cards */}
                     <div className="lg:hidden space-y-3 p-4">
                       {filteredOrders.map((order) => (
-                        <OrderCard
-                          key={order.id}
-                          order={order}
-                          showDeliveryInfo={order.type === 'online'}
-                        />
+                        <div key={order.id} className="relative">
+                          <OrderCard
+                            order={order}
+                            showDeliveryInfo={order.type === 'online'}
+                          />
+                          {activeTab === 'deleted' && order.deleted_at && (
+                            <div className="mt-2 flex justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => restoreOrder(order.id)}
+                                className="gap-2"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                Restaurar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </>

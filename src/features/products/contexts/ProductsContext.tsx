@@ -4,16 +4,28 @@
  * Pattern aligned with OrdersContext for future Laravel integration
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Product, AdjustStockDto, CreateProductDto, UpdateProductDto } from '../types';
 import { productsService } from '../services';
 import { STORAGE_KEYS } from '@/config';
 import { useAuth } from '@/features/auth';
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface ProductsContextType {
   products: Product[];
   loading: boolean;
   deletedCount: number;
+  pagination: PaginationInfo;
+  refreshProducts: () => Promise<void>;
+  goToPage: (page: number) => Promise<void>;
   addProduct: (product: CreateProductDto) => Promise<Product>;
   updateProduct: (id: string, product: UpdateProductDto) => Promise<Product>;
   deleteProduct: (id: string) => Promise<void>;
@@ -28,38 +40,62 @@ interface ProductsContextType {
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
 
+const defaultPagination: PaginationInfo = {
+  currentPage: 1,
+  totalPages: 1,
+  totalItems: 0,
+  itemsPerPage: 15,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
+
 export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletedCount, setDeletedCount] = useState(0);
+  const [pagination, setPagination] = useState<PaginationInfo>(defaultPagination);
+  const [currentPage, setCurrentPage] = useState(1);
   const { user } = useAuth();
 
   // Check if user is admin
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
+  // Function to load products for a specific page
+  const loadProductsPage = useCallback(async (page: number): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await productsService.getAll({ page, per_page: 15 });
+      setProducts(result.data);
+      setPagination(result.pagination);
+      setCurrentPage(page);
+
+      // Only load deleted count if user is admin
+      if (isAdmin) {
+        const deletedResult = await productsService.getDeleted();
+        setDeletedCount(deletedResult.data.length);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin]);
+
+  // Function to refresh products (reload current page)
+  const refreshProducts = async (): Promise<void> => {
+    await loadProductsPage(currentPage);
+  };
+
+  // Function to go to a specific page
+  const goToPage = async (page: number): Promise<void> => {
+    if (page < 1 || page > pagination.totalPages) return;
+    await loadProductsPage(page);
+  };
+
   // Load products and deleted count on mount or when user changes
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        const result = await productsService.getAll();
-        setProducts(result.data); // Extract data from paginated response
-
-        // Only load deleted count if user is admin
-        if (isAdmin) {
-          const deletedResult = await productsService.getDeleted();
-          setDeletedCount(deletedResult.data.length);
-        } else {
-          setDeletedCount(0);
-        }
-      } catch (error) {
-        console.error('Error loading products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProducts();
-  }, [isAdmin]);
+    loadProductsPage(1);
+  }, [loadProductsPage]);
 
   const addProduct = async (productData: CreateProductDto): Promise<Product> => {
     setLoading(true);
@@ -233,6 +269,9 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       products,
       loading,
       deletedCount,
+      pagination,
+      refreshProducts,
+      goToPage,
       addProduct,
       updateProduct,
       deleteProduct,

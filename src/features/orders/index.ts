@@ -17,6 +17,9 @@ export {
   PaymentConfirmationDialog
 } from './components';
 export { default as ExportButton } from './components/ExportButton';
+export { OrdersTableDynamic } from './components/OrdersTableDynamic';
+export { OrderColumnSelector } from './components/OrderColumnSelector';
+export { OrderRowDynamic } from './components/OrderRowDynamic';
 
 // Hooks
 export {
@@ -24,7 +27,9 @@ export {
   useOrdersAdmin,
   useOrdersHistory
 } from './hooks';
+export { useOrderColumns, ORDER_COLUMNS } from './hooks/useOrderColumns';
 export type { HistoryTab } from './hooks/useOrdersHistory';
+export type { OrderColumn } from './hooks/useOrderColumns';
 
 // Context
 export { OrdersProvider, useOrders } from './contexts';
