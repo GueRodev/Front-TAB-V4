@@ -6,3 +6,4 @@
 export { OptimizedImage, ProductImage } from './OptimizedImage';
 export { EmptyState } from './EmptyState';
 export { DeleteConfirmDialog } from './DeleteConfirmDialog';
+export { LoadingOverlay } from './LoadingOverlay';

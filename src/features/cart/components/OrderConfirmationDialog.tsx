@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ShoppingBag, Store, Truck, Package } from 'lucide-react';
+import { ShoppingBag, Store, Truck, Package, Loader2 } from 'lucide-react';
 import type { CartItem } from '../types';
 
 interface OrderConfirmationDialogProps {
@@ -24,6 +24,7 @@ interface OrderConfirmationDialogProps {
   items: CartItem[];
   totalPrice: number;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
 export const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
@@ -33,6 +34,7 @@ export const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = (
   items,
   totalPrice,
   onConfirm,
+  isLoading = false,
 }) => {
   const isPickup = deliveryOption === 'pickup';
 
@@ -98,14 +100,22 @@ export const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = (
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-brand-darkBlue hover:bg-brand-orange"
+            disabled={isLoading}
           >
-            Confirmar Pedido
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              'Confirmar Pedido'
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

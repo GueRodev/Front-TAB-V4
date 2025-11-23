@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 
 interface PaymentConfirmationDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface PaymentConfirmationDialogProps {
   onConfirm: () => void;
   customerName?: string;
   orderTotal?: number;
+  isLoading?: boolean;
 }
 
 export const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps> = ({
@@ -28,6 +30,7 @@ export const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps>
   onConfirm,
   customerName,
   orderTotal,
+  isLoading = false,
 }) => {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -49,9 +52,16 @@ export const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
-            Sí, he recibido el comprobante
+          <AlertDialogCancel disabled={isLoading}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Confirmando...
+              </>
+            ) : (
+              'Sí, he recibido el comprobante'
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

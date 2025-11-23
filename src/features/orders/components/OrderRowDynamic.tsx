@@ -174,6 +174,30 @@ export const OrderRowDynamic = ({
                 </Button>
               </>
             )}
+            {/* Acciones para pedidos completados: Cancelar */}
+            {order.status === 'completed' && !order.deleted_at && onCancel && (
+              <Button
+                onClick={() => onCancel(order)}
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                title="Cambiar a Cancelado"
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            )}
+            {/* Acciones para pedidos cancelados: Completar */}
+            {order.status === 'cancelled' && !order.deleted_at && onComplete && (
+              <Button
+                onClick={() => onComplete(order)}
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                title="Cambiar a Completado"
+              >
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+            )}
             {order.status !== 'pending' && !order.deleted_at && onArchive && (
               <Button
                 onClick={() => onArchive(order.id)}

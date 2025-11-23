@@ -42,6 +42,9 @@ export const useOrderForm = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress | null>(null);
 
+  // Loading state for order submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { addOrder } = useOrders();
   const { addNotification } = useNotifications();
   const { items: cart, clearCart } = useCart();
@@ -254,11 +257,12 @@ export const useOrderForm = () => {
 
   /**
    * Submit order form
+   * @returns true if order was created successfully, false otherwise
    */
-  const submitOrder = async () => {
+  const submitOrder = async (): Promise<boolean> => {
     // Validate form first
     if (!validateForm()) {
-      return;
+      return false;
     }
 
     // Build order data
@@ -293,6 +297,7 @@ export const useOrderForm = () => {
       }
     }
 
+    setIsSubmitting(true);
     try {
       // Context internally calls the service and calculates subtotal/total
       const orderId = await addOrder(orderData);
@@ -316,6 +321,8 @@ export const useOrderForm = () => {
         title: "Pedido enviado",
         description: "Tu pedido ha sido enviado correctamente",
       });
+
+      return true;
     } catch (error: any) {
       console.error('Error creating order:', error);
 
@@ -334,6 +341,10 @@ export const useOrderForm = () => {
         description: errorMessage,
         variant: "destructive",
       });
+
+      return false;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -347,6 +358,9 @@ export const useOrderForm = () => {
     addressType,
     selectedAddressId,
     deliveryAddress,
+
+    // Loading state
+    isSubmitting,
 
     // Form actions
     handleInputChange,

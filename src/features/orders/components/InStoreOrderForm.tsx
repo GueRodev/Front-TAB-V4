@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Plus, Trash2, Minus } from 'lucide-react';
+import { ShoppingBag, Plus, Trash2, Minus, Loader2 } from 'lucide-react';
 import { ProductSelector } from './ProductSelector';
 import type { Product } from '@/features/products/types';
 import type { Category } from '@/features/categories/types';
@@ -64,6 +64,7 @@ interface InStoreOrderFormProps {
 
   // Submit
   onSubmit: (e: React.FormEvent) => void;
+  isLoading?: boolean;
 }
 
 export const InStoreOrderForm: React.FC<InStoreOrderFormProps> = ({
@@ -104,6 +105,7 @@ export const InStoreOrderForm: React.FC<InStoreOrderFormProps> = ({
 
   // Submit
   onSubmit,
+  isLoading = false,
 }) => {
   // Calcular total: usar cartTotal si hay carrito, sino producto individual
   const displayTotal = cartItems.length > 0
@@ -336,9 +338,16 @@ export const InStoreOrderForm: React.FC<InStoreOrderFormProps> = ({
           <Button
             type="submit"
             className="w-full"
-            disabled={!isFormValid}
+            disabled={!isFormValid || isLoading}
           >
-            Crear Pedido
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creando Pedido...
+              </>
+            ) : (
+              'Crear Pedido'
+            )}
           </Button>
         </form>
       </CardContent>

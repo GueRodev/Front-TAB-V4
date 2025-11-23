@@ -14,9 +14,13 @@ interface OrdersListProps {
   gridColumns?: string;
   onHide?: (orderId: string) => void;
   onDelete?: (orderId: string, order: Order) => void;
+  onRemove?: (orderId: string) => void;
   onComplete?: (order: Order) => void;
   onCancel?: (order: Order) => void;
   onCompleteWithConfirmation?: (order: Order) => void;
+  completingOrderId?: string | null;
+  cancellingOrderId?: string | null;
+  deletingOrderId?: string | null;
 }
 
 export const OrdersList: React.FC<OrdersListProps> = ({
@@ -27,9 +31,13 @@ export const OrdersList: React.FC<OrdersListProps> = ({
   gridColumns = "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
   onHide,
   onDelete,
+  onRemove,
   onComplete,
   onCancel,
   onCompleteWithConfirmation,
+  completingOrderId = null,
+  cancellingOrderId = null,
+  deletingOrderId = null,
 }) => {
   if (orders.length === 0) {
     return (
@@ -49,9 +57,13 @@ export const OrdersList: React.FC<OrdersListProps> = ({
           showDeliveryInfo={showDeliveryInfo}
           onHide={onHide}
           onDelete={onDelete}
+          onRemove={onRemove}
           onComplete={onComplete}
           onCancel={onCancel}
           onCompleteWithConfirmation={onCompleteWithConfirmation}
+          isCompleting={completingOrderId === order.id}
+          isCancelling={cancellingOrderId === order.id}
+          isDeleting={deletingOrderId === order.id}
         />
       ))}
     </div>

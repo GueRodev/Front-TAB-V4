@@ -23,6 +23,16 @@ interface PaymentConfirmationDialog {
   order: Order | null;
 }
 
+interface CancelOrderDialog {
+  open: boolean;
+  order: Order | null;
+}
+
+interface CompleteInStoreDialog {
+  open: boolean;
+  order: Order | null;
+}
+
 /**
  * Cart item for in-store orders
  */
@@ -41,6 +51,12 @@ interface UseOrdersAdminReturn {
   onlineOrders: Order[];
   inStoreOrders: Order[];
   isLoading: boolean;
+
+  // Loading states for actions
+  isCreatingOrder: boolean;
+  isCompletingOrder: string | null; // orderId being completed
+  isCancellingOrder: string | null; // orderId being cancelled
+  isDeletingOrder: string | null; // orderId being deleted
 
   // In-store cart (múltiples productos)
   cartItems: InStoreCartItem[];
@@ -90,11 +106,23 @@ interface UseOrdersAdminReturn {
   closeDeleteOrderDialog: () => void;
   confirmDeleteOrder: () => void;
 
-  // Payment confirmation dialog
+  // Payment confirmation dialog (online orders)
   paymentConfirmDialog: PaymentConfirmationDialog;
   openPaymentConfirmDialog: (order: Order) => void;
   closePaymentConfirmDialog: () => void;
   confirmCompleteOrder: () => void;
+
+  // Cancel order dialog
+  cancelOrderDialog: CancelOrderDialog;
+  openCancelOrderDialog: (order: Order) => void;
+  closeCancelOrderDialog: () => void;
+  confirmCancelOrder: () => void;
+
+  // Complete in-store order dialog
+  completeInStoreDialog: CompleteInStoreDialog;
+  openCompleteInStoreDialog: (order: Order) => void;
+  closeCompleteInStoreDialog: () => void;
+  confirmCompleteInStoreOrder: () => void;
 }
 
 export const useOrdersAdmin = (): UseOrdersAdminReturn => {
@@ -115,15 +143,31 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
-  
+
+  // Loading states for actions
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [isCompletingOrder, setIsCompletingOrder] = useState<string | null>(null);
+  const [isCancellingOrder, setIsCancellingOrder] = useState<string | null>(null);
+  const [isDeletingOrder, setIsDeletingOrder] = useState<string | null>(null);
+
   // Dialog states
   const [deleteOrderDialog, setDeleteOrderDialog] = useState<DeleteOrderDialog>({
     open: false,
     orderId: null,
     order: null,
   });
-  
+
   const [paymentConfirmDialog, setPaymentConfirmDialog] = useState<PaymentConfirmationDialog>({
+    open: false,
+    order: null,
+  });
+
+  const [cancelOrderDialog, setCancelOrderDialog] = useState<CancelOrderDialog>({
+    open: false,
+    order: null,
+  });
+
+  const [completeInStoreDialog, setCompleteInStoreDialog] = useState<CompleteInStoreDialog>({
     open: false,
     order: null,
   });
@@ -346,6 +390,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       paymentMethod,
     };
 
+    setIsCreatingOrder(true);
     try {
       const orderId = await addOrder(orderData);
 
@@ -378,6 +423,8 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         description: "No se pudo crear el pedido",
         variant: "destructive",
       });
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
@@ -406,9 +453,11 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
   const confirmDeleteOrder = async () => {
     if (!deleteOrderDialog.orderId || !deleteOrderDialog.order) return;
 
+    const orderId = deleteOrderDialog.orderId;
+    setIsDeletingOrder(orderId);
     try {
       // Backend libera el stock automáticamente
-      await deleteOrder(deleteOrderDialog.orderId);
+      await deleteOrder(orderId);
 
       // Refrescar productos para actualizar el stock en la UI (stock liberado)
       await refreshProducts();
@@ -416,7 +465,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       addNotification({
         type: 'order',
         title: 'Pedido eliminado',
-        message: `Pedido #${deleteOrderDialog.orderId} eliminado`,
+        message: `Pedido #${orderId} eliminado`,
         time: 'Ahora',
       });
 
@@ -430,6 +479,8 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         description: "No se pudo eliminar el pedido",
         variant: "destructive",
       });
+    } finally {
+      setIsDeletingOrder(null);
     }
 
     setDeleteOrderDialog({ open: false, orderId: null, order: null });
@@ -462,6 +513,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
     const order = paymentConfirmDialog.order;
 
+    setIsCompletingOrder(order.id);
     try {
       // Backend automáticamente confirma la venta y descuenta el stock real
       await updateOrderStatus(order.id, 'completed');
@@ -486,16 +538,33 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         description: "No se pudo completar el pedido",
         variant: "destructive",
       });
+    } finally {
+      setIsCompletingOrder(null);
     }
 
     setPaymentConfirmDialog({ open: false, order: null });
   };
 
   /**
-   * Complete order (in-store orders complete immediately)
+   * Complete order - opens confirmation dialog for in-store orders
+   * Online orders are handled via onCompleteWithConfirmation prop
+   */
+  const handleCompleteOrder = (order: Order) => {
+    if (order.type === 'in-store') {
+      // In-store orders need payment confirmation dialog
+      openCompleteInStoreDialog(order);
+    } else {
+      // Online orders: direct complete (fallback, normally uses onCompleteWithConfirmation)
+      directCompleteOrder(order);
+    }
+  };
+
+  /**
+   * Direct complete order (without dialog)
    * NOTA: El backend maneja automáticamente el descuento de stock al completar
    */
-  const handleCompleteOrder = async (order: Order) => {
+  const directCompleteOrder = async (order: Order) => {
+    setIsCompletingOrder(order.id);
     try {
       // Backend automáticamente confirma la venta y descuenta el stock real
       await updateOrderStatus(order.id, 'completed');
@@ -520,14 +589,37 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         description: "No se pudo completar el pedido",
         variant: "destructive",
       });
+    } finally {
+      setIsCompletingOrder(null);
     }
   };
 
   /**
-   * Cancel order
+   * Open cancel order dialog
+   */
+  const openCancelOrderDialog = (order: Order) => {
+    setCancelOrderDialog({
+      open: true,
+      order,
+    });
+  };
+
+  /**
+   * Close cancel order dialog
+   */
+  const closeCancelOrderDialog = () => {
+    setCancelOrderDialog({ open: false, order: null });
+  };
+
+  /**
+   * Confirm and cancel order
    * NOTA: El backend libera el stock automáticamente al cancelar
    */
-  const handleCancelOrder = async (order: Order) => {
+  const confirmCancelOrder = async () => {
+    if (!cancelOrderDialog.order) return;
+
+    const order = cancelOrderDialog.order;
+    setIsCancellingOrder(order.id);
     try {
       await updateOrderStatus(order.id, 'cancelled');
 
@@ -551,6 +643,86 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         description: "No se pudo cancelar el pedido",
         variant: "destructive",
       });
+    } finally {
+      setIsCancellingOrder(null);
+    }
+
+    setCancelOrderDialog({ open: false, order: null });
+  };
+
+  /**
+   * Open complete in-store order dialog
+   */
+  const openCompleteInStoreDialog = (order: Order) => {
+    setCompleteInStoreDialog({
+      open: true,
+      order,
+    });
+  };
+
+  /**
+   * Close complete in-store order dialog
+   */
+  const closeCompleteInStoreDialog = () => {
+    setCompleteInStoreDialog({ open: false, order: null });
+  };
+
+  /**
+   * Confirm and complete in-store order (after payment confirmation)
+   * NOTA: El backend maneja automáticamente el descuento de stock al completar
+   */
+  const confirmCompleteInStoreOrder = async () => {
+    if (!completeInStoreDialog.order) return;
+
+    const order = completeInStoreDialog.order;
+    setIsCompletingOrder(order.id);
+    try {
+      // Backend automáticamente confirma la venta y descuenta el stock real
+      await updateOrderStatus(order.id, 'completed');
+
+      // Refrescar productos para actualizar el stock en la UI
+      await refreshProducts();
+
+      addNotification({
+        type: 'order',
+        title: 'Pedido completado',
+        message: `Pedido #${order.id} completado`,
+        time: 'Ahora',
+      });
+
+      toast({
+        title: "Pedido completado",
+        description: "El pedido ha sido marcado como completado",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo completar el pedido",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompletingOrder(null);
+    }
+
+    setCompleteInStoreDialog({ open: false, order: null });
+  };
+
+  /**
+   * Handle cancel order - opens confirmation dialog
+   */
+  const handleCancelOrder = (order: Order) => {
+    openCancelOrderDialog(order);
+  };
+
+  /**
+   * Handle complete order - opens appropriate dialog based on order type
+   */
+  const handleCompleteOrderWithDialog = (order: Order) => {
+    if (order.type === 'in-store') {
+      openCompleteInStoreDialog(order);
+    } else {
+      // Online orders use the payment confirmation dialog via onCompleteWithConfirmation
+      handleCompleteOrder(order);
     }
   };
 
@@ -559,6 +731,12 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     onlineOrders,
     inStoreOrders,
     isLoading,
+
+    // Loading states for actions
+    isCreatingOrder,
+    isCompletingOrder,
+    isCancellingOrder,
+    isDeletingOrder,
 
     // In-store cart
     cartItems,
@@ -611,5 +789,17 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
     openPaymentConfirmDialog,
     closePaymentConfirmDialog,
     confirmCompleteOrder,
+
+    // Cancel order dialog
+    cancelOrderDialog,
+    openCancelOrderDialog,
+    closeCancelOrderDialog,
+    confirmCancelOrder,
+
+    // Complete in-store order dialog
+    completeInStoreDialog,
+    openCompleteInStoreDialog,
+    closeCompleteInStoreDialog,
+    confirmCompleteInStoreOrder,
   };
 };

@@ -13,9 +13,9 @@ import {
   useOrdersAdmin,
   OrdersList,
   InStoreOrderForm,
-  PaymentConfirmationDialog
+  PaymentConfirmationDialog,
+  OrderActionDialog
 } from '@/features/orders';
-import { DeleteConfirmDialog } from '@/components/common';
 import { ShoppingCart, Store, History, Eye, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -24,9 +24,15 @@ const AdminOrders = () => {
   const navigate = useNavigate();
   const { categories } = useCategories();
   
-  // Estado local para pedidos ocultos
+  // Estado local para pedidos ocultos (temporalmente)
   const [hiddenOrderIds, setHiddenOrderIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('hiddenOrderIds');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Estado local para pedidos quitados definitivamente de la bandeja
+  const [removedOrderIds, setRemovedOrderIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('removedOrderIds');
     return saved ? JSON.parse(saved) : [];
   });
   
@@ -35,6 +41,12 @@ const AdminOrders = () => {
     onlineOrders,
     inStoreOrders,
     isLoading,
+
+    // Loading states for actions
+    isCreatingOrder,
+    isCompletingOrder,
+    isCancellingOrder,
+    isDeletingOrder,
 
     // In-store cart
     cartItems,
@@ -84,9 +96,19 @@ const AdminOrders = () => {
     openPaymentConfirmDialog,
     closePaymentConfirmDialog,
     confirmCompleteOrder,
+
+    // Cancel order dialog
+    cancelOrderDialog,
+    closeCancelOrderDialog,
+    confirmCancelOrder,
+
+    // Complete in-store order dialog
+    completeInStoreDialog,
+    closeCompleteInStoreDialog,
+    confirmCompleteInStoreOrder,
   } = useOrdersAdmin();
 
-  // Función para ocultar pedido localmente
+  // Función para ocultar pedido localmente (temporalmente)
   const handleHideOrder = (orderId: string) => {
     const newHiddenIds = [...hiddenOrderIds, orderId];
     setHiddenOrderIds(newHiddenIds);
@@ -97,13 +119,24 @@ const AdminOrders = () => {
     });
   };
 
-  // Filtrar pedidos visibles
+  // Función para quitar pedido definitivamente de la bandeja
+  const handleRemoveOrder = (orderId: string) => {
+    const newRemovedIds = [...removedOrderIds, orderId];
+    setRemovedOrderIds(newRemovedIds);
+    localStorage.setItem('removedOrderIds', JSON.stringify(newRemovedIds));
+    toast({
+      title: "Pedido quitado",
+      description: "El pedido ha sido quitado de la bandeja de entrada",
+    });
+  };
+
+  // Filtrar pedidos visibles (excluir ocultos y quitados)
   const visibleOnlineOrders = onlineOrders.filter(
-    order => !hiddenOrderIds.includes(order.id)
+    order => !hiddenOrderIds.includes(order.id) && !removedOrderIds.includes(order.id)
   );
-  
+
   const visibleInStoreOrders = inStoreOrders.filter(
-    order => !hiddenOrderIds.includes(order.id)
+    order => !hiddenOrderIds.includes(order.id) && !removedOrderIds.includes(order.id)
   );
 
   return (
@@ -170,9 +203,13 @@ const AdminOrders = () => {
                       emptyIcon={<ShoppingCart className="h-10 w-10 md:h-12 md:w-12 opacity-30" />}
                       onHide={handleHideOrder}
                       onDelete={openDeleteOrderDialog}
+                      onRemove={handleRemoveOrder}
                       onComplete={handleCompleteOrder}
                       onCancel={handleCancelOrder}
                       onCompleteWithConfirmation={openPaymentConfirmDialog}
+                      completingOrderId={isCompletingOrder}
+                      cancellingOrderId={isCancellingOrder}
+                      deletingOrderId={isDeletingOrder}
                     />
                   )}
                 </CardContent>
@@ -230,6 +267,7 @@ const AdminOrders = () => {
                     categories={categories}
                     // Submit
                     onSubmit={handleCreateInStoreOrder}
+                    isLoading={isCreatingOrder}
                   />
                 </div>
 
@@ -256,8 +294,12 @@ const AdminOrders = () => {
                       gridColumns="grid-cols-1 lg:grid-cols-2"
                       onHide={handleHideOrder}
                       onDelete={openDeleteOrderDialog}
+                      onRemove={handleRemoveOrder}
                       onComplete={handleCompleteOrder}
                       onCancel={handleCancelOrder}
+                      completingOrderId={isCompletingOrder}
+                      cancellingOrderId={isCancellingOrder}
+                      deletingOrderId={isDeletingOrder}
                     />
                   )}
                 </div>
@@ -268,25 +310,57 @@ const AdminOrders = () => {
       </div>
 
       {/* Delete Order Confirmation */}
-      <DeleteConfirmDialog
+      <OrderActionDialog
         open={deleteOrderDialog.open}
         onOpenChange={(open) => {
-          if (!open) closeDeleteOrderDialog();
+          if (!open && !isDeletingOrder) closeDeleteOrderDialog();
         }}
-        itemName={deleteOrderDialog.order?.id || ''}
-        itemType="order"
         onConfirm={confirmDeleteOrder}
+        actionType="delete"
+        orderNumber={deleteOrderDialog.order?.order_number || deleteOrderDialog.order?.id?.slice(0, 8)}
+        customerName={deleteOrderDialog.order?.customerInfo?.name}
+        orderTotal={deleteOrderDialog.order?.total}
+        isLoading={!!isDeletingOrder}
       />
 
       {/* Payment Confirmation Dialog */}
       <PaymentConfirmationDialog
         open={paymentConfirmDialog.open}
         onOpenChange={(open) => {
-          if (!open) closePaymentConfirmDialog();
+          if (!open && !isCompletingOrder) closePaymentConfirmDialog();
         }}
         onConfirm={confirmCompleteOrder}
         customerName={paymentConfirmDialog.order?.customerInfo?.name}
         orderTotal={paymentConfirmDialog.order?.total}
+        isLoading={!!isCompletingOrder}
+      />
+
+      {/* Cancel Order Confirmation Dialog */}
+      <OrderActionDialog
+        open={cancelOrderDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !isCancellingOrder) closeCancelOrderDialog();
+        }}
+        onConfirm={confirmCancelOrder}
+        actionType="cancel"
+        orderNumber={cancelOrderDialog.order?.order_number || cancelOrderDialog.order?.id?.slice(0, 8)}
+        customerName={cancelOrderDialog.order?.customerInfo?.name}
+        orderTotal={cancelOrderDialog.order?.total}
+        isLoading={!!isCancellingOrder}
+      />
+
+      {/* Complete In-Store Order Confirmation Dialog */}
+      <OrderActionDialog
+        open={completeInStoreDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !isCompletingOrder) closeCompleteInStoreDialog();
+        }}
+        onConfirm={confirmCompleteInStoreOrder}
+        actionType="complete-instore"
+        orderNumber={completeInStoreDialog.order?.order_number || completeInStoreDialog.order?.id?.slice(0, 8)}
+        customerName={completeInStoreDialog.order?.customerInfo?.name}
+        orderTotal={completeInStoreDialog.order?.total}
+        isLoading={!!isCompletingOrder}
       />
     </SidebarProvider>
   );

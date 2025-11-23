@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface DeleteConfirmDialogProps {
   itemName: string;
   itemType?: 'category' | 'subcategory' | 'order' | 'product' | 'user';
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
 export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
@@ -29,6 +31,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   itemName,
   itemType = 'subcategory',
   onConfirm,
+  isLoading = false,
 }) => {
   const itemLabel =
     itemType === 'category' ? 'categoría' :
@@ -48,9 +51,16 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-brand-orange hover:bg-brand-orange/90">
-            Eliminar
+          <AlertDialogCancel disabled={isLoading}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className="bg-brand-orange hover:bg-brand-orange/90" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Eliminando...
+              </>
+            ) : (
+              'Eliminar'
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

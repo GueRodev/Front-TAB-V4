@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { EyeOff, Trash2, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { EyeOff, Trash2, CheckCircle, XCircle, Mail, Loader2, Store, X } from 'lucide-react';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { cn } from '@/lib/utils';
 import type { Order } from '../types';
@@ -17,9 +17,13 @@ interface OrderCardProps {
   showDeliveryInfo?: boolean;
   onHide?: (orderId: string) => void;
   onDelete?: (orderId: string, order: Order) => void;
+  onRemove?: (orderId: string) => void; // Quita definitivamente de la bandeja
   onComplete?: (order: Order) => void;
   onCancel?: (order: Order) => void;
   onCompleteWithConfirmation?: (order: Order) => void;
+  isCompleting?: boolean;
+  isCancelling?: boolean;
+  isDeleting?: boolean;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -27,9 +31,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   showDeliveryInfo = false,
   onHide,
   onDelete,
+  onRemove,
   onComplete,
   onCancel,
   onCompleteWithConfirmation,
+  isCompleting = false,
+  isCancelling = false,
+  isDeleting = false,
 }) => {
   const handleComplete = () => {
     if (order.type === 'online' && onCompleteWithConfirmation) {
@@ -92,21 +100,32 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
 
-        {/* Dirección de envío compacta */}
-        {showDeliveryInfo && order.delivery_address && (
-          <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 md:p-4 space-y-2 border border-blue-100 dark:border-blue-900">
-            <div className="space-y-1">
-              <span className="text-xs md:text-sm font-medium text-blue-900 dark:text-blue-100">
-                📍 Dirección de envío:
-              </span>
-              <p className="text-xs md:text-sm font-medium">
-                {order.delivery_address.province}, {order.delivery_address.canton}, {order.delivery_address.district}
-              </p>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {order.delivery_address.address}
-              </p>
+        {/* Dirección de envío o Recoger en tienda */}
+        {showDeliveryInfo && (
+          order.delivery_address ? (
+            <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 md:p-4 space-y-2 border border-blue-100 dark:border-blue-900">
+              <div className="space-y-1">
+                <span className="text-xs md:text-sm font-medium text-blue-900 dark:text-blue-100">
+                  📍 Dirección de envío:
+                </span>
+                <p className="text-xs md:text-sm font-medium">
+                  {order.delivery_address.province}, {order.delivery_address.canton}, {order.delivery_address.district}
+                </p>
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  {order.delivery_address.address}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 md:p-4 border border-amber-100 dark:border-amber-900">
+              <div className="flex items-center gap-2">
+                <Store className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs md:text-sm font-medium text-amber-900 dark:text-amber-100">
+                  Recoger en tienda
+                </span>
+              </div>
+            </div>
+          )
         )}
 
         {/* Total y Pago */}
@@ -123,7 +142,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <span className={cn(
                 "font-semibold text-sm md:text-base",
                 order.paymentMethod === 'sinpe' && "text-blue-600 dark:text-blue-400",
-                order.paymentMethod === 'transfer' && "text-purple-600 dark:text-purple-400",
+                order.paymentMethod === 'transfer' && "text-brand-darkBlue dark:text-brand-darkBlue",
                 order.paymentMethod === 'cash' && "text-green-600 dark:text-green-400"
               )}>
                 {order.paymentMethod === 'sinpe' ? '💳 SINPE Móvil' : 
@@ -168,55 +187,108 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               onClick={handleComplete}
               size="sm"
-              className="w-full md:flex-1 bg-[hsl(217,33%,17%)] hover:bg-[hsl(222,47%,11%)] dark:bg-[hsl(222,47%,11%)] dark:hover:bg-black text-white"
+              className="w-full md:flex-1 bg-green-600 hover:bg-green-700 text-white"
+              disabled={isCompleting || isCancelling || isDeleting}
             >
-              <CheckCircle className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
-              <span className="text-xs md:text-sm font-semibold">Completar</span>
+              {isCompleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 animate-spin" />
+                  <span className="text-xs md:text-sm font-semibold">Completando...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                  <span className="text-xs md:text-sm font-semibold">Completar</span>
+                </>
+              )}
             </Button>
             <Button
               onClick={() => onCancel(order)}
               size="sm"
               variant="destructive"
               className="w-full md:flex-1"
+              disabled={isCompleting || isCancelling || isDeleting}
             >
-              <XCircle className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
-              <span className="text-xs md:text-sm font-semibold">Cancelar</span>
+              {isCancelling ? (
+                <>
+                  <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 animate-spin" />
+                  <span className="text-xs md:text-sm font-semibold">Cancelando...</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                  <span className="text-xs md:text-sm font-semibold">Cancelar</span>
+                </>
+              )}
             </Button>
-          </>
-        )}
-        {(order.status === 'completed' || order.status === 'cancelled') && onHide && (
-          <>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() => onHide(order.id)}
-                    size="sm"
-                    variant="outline"
-                    className="w-full md:flex-1"
-                  >
-                    <EyeOff className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
-                    <span className="text-xs md:text-sm">Ocultar</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-xs">
-                    Oculta este pedido de la bandeja de entrada. 
-                    Seguirá visible en el historial.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             {onDelete && (
               <Button
                 onClick={() => onDelete(order.id, order)}
                 size="sm"
-                variant="destructive"
-                className="w-full md:flex-1"
+                className="w-full md:flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={isCompleting || isCancelling || isDeleting}
               >
-                <Trash2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
-                <span className="text-xs md:text-sm">Eliminar</span>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 animate-spin" />
+                    <span className="text-xs md:text-sm font-semibold">Eliminando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                    <span className="text-xs md:text-sm font-semibold">Eliminar</span>
+                  </>
+                )}
               </Button>
+            )}
+          </>
+        )}
+        {(order.status === 'completed' || order.status === 'cancelled') && (onHide || onRemove) && (
+          <>
+            {onHide && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => onHide(order.id)}
+                      size="sm"
+                      variant="outline"
+                      className="w-full md:flex-1"
+                    >
+                      <EyeOff className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                      <span className="text-xs md:text-sm">Ocultar</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
+                      Oculta este pedido de la bandeja de entrada.
+                      Seguirá visible en el historial.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {onRemove && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => onRemove(order.id)}
+                      size="sm"
+                      className="w-full md:flex-1 bg-brand-darkBlue hover:bg-brand-darkBlue/90 text-white"
+                    >
+                      <X className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                      <span className="text-xs md:text-sm">Quitar</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
+                      Quita este pedido definitivamente de la bandeja de entrada.
+                      Seguirá visible en el historial.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </>
         )}

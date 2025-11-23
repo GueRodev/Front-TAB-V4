@@ -14,7 +14,9 @@ export {
   ProductSelector,
   AddressSelector,
   PaymentMethodSelector,
-  PaymentConfirmationDialog
+  PaymentConfirmationDialog,
+  OrderActionDialog,
+  type OrderActionType
 } from './components';
 export { default as ExportButton } from './components/ExportButton';
 export { OrdersTableDynamic } from './components/OrdersTableDynamic';

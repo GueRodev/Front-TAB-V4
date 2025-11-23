@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MapPin } from 'lucide-react';
+import { MapPin, Loader2 } from 'lucide-react';
 import type { DeliveryAddress } from '@/features/orders/types';
 
 interface AddressConfirmationDialogProps {
@@ -22,6 +22,7 @@ interface AddressConfirmationDialogProps {
   onOpenChange: (open: boolean) => void;
   address: DeliveryAddress | null | undefined;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
 export const AddressConfirmationDialog: React.FC<AddressConfirmationDialogProps> = ({
@@ -29,6 +30,7 @@ export const AddressConfirmationDialog: React.FC<AddressConfirmationDialogProps>
   onOpenChange,
   address,
   onConfirm,
+  isLoading = false,
 }) => {
   if (!address) return null;
 
@@ -68,14 +70,22 @@ export const AddressConfirmationDialog: React.FC<AddressConfirmationDialogProps>
         </AlertDialogHeader>
         
         <AlertDialogFooter>
-          <AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>
             Cancelar y Editar
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-brand-darkBlue hover:bg-brand-orange"
+            disabled={isLoading}
           >
-            Confirmar y Continuar
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              'Confirmar y Continuar'
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

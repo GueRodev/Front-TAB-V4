@@ -47,6 +47,11 @@ interface UseOrdersHistoryReturn {
   handleExportPDF: () => void;
   handleExportExcel: () => void;
 
+  // Acciones de pedidos
+  handleDeleteOrder: (orderId: string) => Promise<void>;
+  handleCompleteOrder: (order: Order) => Promise<void>;
+  handleCancelOrder: (order: Order) => Promise<void>;
+
   // Utilidades
   clearFilters: () => void;
   hasActiveFilters: boolean;
@@ -63,6 +68,8 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     getCompletedOrders,
     getTrashedOrders,
     restoreOrder,
+    updateOrderStatus,
+    deleteOrder,
   } = useOrders();
 
   // Cargar historial cuando se monta el hook
@@ -178,6 +185,22 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     exportOrdersToExcel(filteredOrders);
   };
 
+  // Acciones de pedidos
+  const handleDeleteOrder = async (orderId: string) => {
+    await deleteOrder(orderId);
+    await refreshHistory();
+  };
+
+  const handleCompleteOrder = async (order: Order) => {
+    await updateOrderStatus(order.id, 'completed');
+    await refreshHistory();
+  };
+
+  const handleCancelOrder = async (order: Order) => {
+    await updateOrderStatus(order.id, 'cancelled');
+    await refreshHistory();
+  };
+
   return {
     // Datos
     completedOrders,
@@ -202,6 +225,11 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     // Exportación
     handleExportPDF,
     handleExportExcel,
+
+    // Acciones de pedidos
+    handleDeleteOrder,
+    handleCompleteOrder,
+    handleCancelOrder,
 
     // Utilidades
     clearFilters,

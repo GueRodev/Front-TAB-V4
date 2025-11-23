@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCartOperations, CartItemsList, EmptyCart, CartSummary, OrderForm, AddressConfirmationDialog, OrderConfirmationDialog } from '@/features/cart';
 import { Header, Footer } from '@/components/layout';
 import { useOrderForm, AddressSelector } from '@/features/orders';
+import { LoadingOverlay } from '@/components/common';
 
 /**
  * Cart Page
@@ -24,6 +25,7 @@ const Cart = () => {
     paymentMethod,
     selectedAddressId,
     deliveryAddress,
+    isSubmitting,
     handleInputChange,
     setDeliveryOption,
     setPaymentMethod,
@@ -35,6 +37,7 @@ const Cart = () => {
 
   const [showAddressConfirmation, setShowAddressConfirmation] = useState(false);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   const handleSubmit = () => {
     if (deliveryOption === 'delivery' && deliveryAddress) {
@@ -46,14 +49,30 @@ const Cart = () => {
     }
   };
 
-  const handleConfirmAddress = () => {
+  const handleConfirmAddress = async () => {
+    // Cerrar modal y mostrar overlay
     setShowAddressConfirmation(false);
-    submitOrder();
+    setShowLoadingOverlay(true);
+
+    const success = await submitOrder();
+
+    // Dar tiempo para que WhatsApp se abra antes de ocultar overlay
+    setTimeout(() => {
+      setShowLoadingOverlay(false);
+    }, success ? 2000 : 0);
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
+    // Cerrar modal y mostrar overlay
     setShowOrderConfirmation(false);
-    submitOrder();
+    setShowLoadingOverlay(true);
+
+    const success = await submitOrder();
+
+    // Dar tiempo para que WhatsApp se abra antes de ocultar overlay
+    setTimeout(() => {
+      setShowLoadingOverlay(false);
+    }, success ? 2000 : 0);
   };
 
   return (
@@ -128,21 +147,34 @@ const Cart = () => {
 
       <AddressConfirmationDialog
         open={showAddressConfirmation}
-        onOpenChange={setShowAddressConfirmation}
+        onOpenChange={(open) => {
+          if (!isSubmitting) setShowAddressConfirmation(open);
+        }}
         address={deliveryAddress}
         onConfirm={handleConfirmAddress}
+        isLoading={isSubmitting}
       />
 
       <OrderConfirmationDialog
         open={showOrderConfirmation}
-        onOpenChange={setShowOrderConfirmation}
+        onOpenChange={(open) => {
+          if (!isSubmitting) setShowOrderConfirmation(open);
+        }}
         deliveryOption={deliveryOption}
         items={items}
         totalPrice={totalPrice}
         onConfirm={handleConfirmOrder}
+        isLoading={isSubmitting}
       />
 
       <Footer />
+
+      {/* Loading overlay for WhatsApp redirect */}
+      <LoadingOverlay
+        isVisible={showLoadingOverlay}
+        message="Enviando pedido..."
+        submessage="Redirigiendo a WhatsApp"
+      />
     </div>
   );
 };
