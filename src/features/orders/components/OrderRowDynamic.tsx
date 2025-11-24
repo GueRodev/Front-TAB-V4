@@ -6,7 +6,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableRow, TableCell } from '@/components/ui/table';
-import { Archive, Trash2, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { Archive, Trash2, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { OrderStatusBadge } from './OrderStatusBadge';
@@ -17,8 +17,6 @@ interface OrderRowDynamicProps {
   visibleColumns: string[];
   onArchive?: (orderId: string) => void;
   onDelete?: (orderId: string, order: Order) => void;
-  onComplete?: (order: Order) => void;
-  onCancel?: (order: Order) => void;
   onRestore?: (orderId: string) => void;
 }
 
@@ -27,8 +25,6 @@ export const OrderRowDynamic = ({
   visibleColumns,
   onArchive,
   onDelete,
-  onComplete,
-  onCancel,
   onRestore,
 }: OrderRowDynamicProps) => {
   const isVisible = (columnId: string) => visibleColumns.includes(columnId);
@@ -51,7 +47,7 @@ export const OrderRowDynamic = ({
     }
   };
 
-  const hasActions = onArchive || onDelete || onComplete || onCancel || onRestore;
+  const hasActions = onArchive || onDelete || onRestore;
 
   return (
     <TableRow className="hover:bg-gray-50">
@@ -134,6 +130,23 @@ export const OrderRowDynamic = ({
         </TableCell>
       )}
 
+      {/* Nombre Productos */}
+      {isVisible('product_names') && (
+        <TableCell className="text-gray-600 text-sm max-w-[200px]">
+          <div className="space-y-0.5">
+            {order.items && order.items.length > 0 ? (
+              order.items.map((item, index) => (
+                <div key={item.id || index} className="truncate" title={`${item.name} (x${item.quantity})`}>
+                  {item.name} <span className="text-gray-400">x{item.quantity}</span>
+                </div>
+              ))
+            ) : (
+              <span className="text-gray-400">-</span>
+            )}
+          </div>
+        </TableCell>
+      )}
+
       {/* Notas */}
       {isVisible('notes') && (
         <TableCell className="text-gray-600 text-sm truncate max-w-[150px]">
@@ -152,52 +165,6 @@ export const OrderRowDynamic = ({
       {isVisible('actions') && hasActions && (
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
-            {order.status === 'pending' && onComplete && onCancel && (
-              <>
-                <Button
-                  onClick={() => onComplete(order)}
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0"
-                  title="Completar"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={() => onCancel(order)}
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0"
-                  title="Cancelar"
-                >
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-            {/* Acciones para pedidos completados: Cancelar */}
-            {order.status === 'completed' && !order.deleted_at && onCancel && (
-              <Button
-                onClick={() => onCancel(order)}
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                title="Cambiar a Cancelado"
-              >
-                <XCircle className="h-4 w-4" />
-              </Button>
-            )}
-            {/* Acciones para pedidos cancelados: Completar */}
-            {order.status === 'cancelled' && !order.deleted_at && onComplete && (
-              <Button
-                onClick={() => onComplete(order)}
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                title="Cambiar a Completado"
-              >
-                <CheckCircle className="h-4 w-4" />
-              </Button>
-            )}
             {order.status !== 'pending' && !order.deleted_at && onArchive && (
               <Button
                 onClick={() => onArchive(order.id)}

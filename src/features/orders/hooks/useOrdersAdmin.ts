@@ -174,35 +174,52 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
 
   // Get data from contexts
   const { getOrdersByType, addOrder, deleteOrder, updateOrderStatus, isLoading } = useOrders();
-  const { products, refreshProducts } = useProducts();
+  const { allProducts, refreshProducts } = useProducts();
   const { categories } = useCategories();
   const { addNotification } = useNotifications();
-  
+
   // Get orders by type
   const onlineOrders = getOrdersByType('online');
   const inStoreOrders = getOrdersByType('in-store');
-  
-  // Filter active products
-  const activeProducts = products.filter(p => p.status === 'active');
+
+  // Filter active products (usar allProducts para tener todos los productos disponibles en selectores)
+  const activeProducts = allProducts.filter(p => p.status === 'active');
   
   // Filter products based on category and search
   const filteredProducts = useMemo(() => {
     let filtered = activeProducts;
-    
+
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(p => p.category_id === categoryFilter);
+      // Buscar la categoría seleccionada
+      const selectedCategory = categories.find(c => c.id === categoryFilter);
+
+      if (selectedCategory) {
+        // Obtener IDs de la categoría y todas sus subcategorías
+        const categoryIds = [selectedCategory.id];
+        if (selectedCategory.children && selectedCategory.children.length > 0) {
+          selectedCategory.children.forEach(child => {
+            categoryIds.push(child.id);
+          });
+        }
+
+        // Filtrar productos que pertenezcan a la categoría o sus subcategorías
+        filtered = filtered.filter(p => categoryIds.includes(p.category_id));
+      } else {
+        // Si no se encuentra la categoría, filtrar directamente (puede ser una subcategoría)
+        filtered = filtered.filter(p => p.category_id === categoryFilter);
+      }
     }
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(query) ||
         p.description?.toLowerCase().includes(query)
       );
     }
-    
+
     return filtered;
-  }, [activeProducts, categoryFilter, searchQuery]);
+  }, [activeProducts, categoryFilter, searchQuery, categories]);
   
   // Get selected product data
   const selectedProductData = activeProducts.find(p => p.id === selectedProduct);

@@ -21,10 +21,12 @@ interface PaginationInfo {
 
 interface ProductsContextType {
   products: Product[];
+  allProducts: Product[]; // Todos los productos sin paginación (para selectores)
   loading: boolean;
   deletedCount: number;
   pagination: PaginationInfo;
   refreshProducts: () => Promise<void>;
+  refreshAllProducts: () => Promise<void>; // Cargar todos los productos
   goToPage: (page: number) => Promise<void>;
   addProduct: (product: CreateProductDto) => Promise<Product>;
   updateProduct: (id: string, product: UpdateProductDto) => Promise<Product>;
@@ -51,6 +53,7 @@ const defaultPagination: PaginationInfo = {
 
 export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Todos los productos sin paginación
   const [loading, setLoading] = useState(false);
   const [deletedCount, setDeletedCount] = useState(0);
   const [pagination, setPagination] = useState<PaginationInfo>(defaultPagination);
@@ -84,7 +87,19 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Function to refresh products (reload current page)
   const refreshProducts = async (): Promise<void> => {
     await loadProductsPage(currentPage);
+    // También refrescar allProducts
+    await refreshAllProducts();
   };
+
+  // Function to load all products without pagination (for selectors/dropdowns)
+  const refreshAllProducts = useCallback(async (): Promise<void> => {
+    try {
+      const result = await productsService.getAll({ per_page: 1000 }); // Cargar todos
+      setAllProducts(result.data);
+    } catch (error) {
+      console.error('Error loading all products:', error);
+    }
+  }, []);
 
   // Function to go to a specific page
   const goToPage = async (page: number): Promise<void> => {
@@ -95,7 +110,8 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Load products and deleted count on mount or when user changes
   useEffect(() => {
     loadProductsPage(1);
-  }, [loadProductsPage]);
+    refreshAllProducts(); // También cargar todos los productos
+  }, [loadProductsPage, refreshAllProducts]);
 
   const addProduct = async (productData: CreateProductDto): Promise<Product> => {
     setLoading(true);
@@ -267,10 +283,12 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <ProductsContext.Provider value={{
       products,
+      allProducts,
       loading,
       deletedCount,
       pagination,
       refreshProducts,
+      refreshAllProducts,
       goToPage,
       addProduct,
       updateProduct,

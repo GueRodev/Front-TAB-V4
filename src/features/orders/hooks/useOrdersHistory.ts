@@ -9,7 +9,7 @@ import { useOrders } from '../contexts';
 import { exportOrdersToPDF, exportOrdersToExcel } from '../helpers';
 import type { Order, OrderType } from '../types';
 
-export type HistoryTab = 'all' | 'completed' | 'cancelled' | 'archived' | 'deleted';
+export type HistoryTab = 'all' | 'completed' | 'cancelled' | 'pending' | 'deleted';
 
 interface DateRange {
   from: Date | null;
@@ -31,7 +31,7 @@ interface UseOrdersHistoryReturn {
     all: number;
     completed: number;
     cancelled: number;
-    archived: number;
+    pending: number;
     deleted: number;
   };
 
@@ -49,8 +49,6 @@ interface UseOrdersHistoryReturn {
 
   // Acciones de pedidos
   handleDeleteOrder: (orderId: string) => Promise<void>;
-  handleCompleteOrder: (order: Order) => Promise<void>;
-  handleCancelOrder: (order: Order) => Promise<void>;
 
   // Utilidades
   clearFilters: () => void;
@@ -66,9 +64,9 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     refreshHistory,
     getOrdersByStatus,
     getCompletedOrders,
+    getPendingOrders,
     getTrashedOrders,
     restoreOrder,
-    updateOrderStatus,
     deleteOrder,
   } = useOrders();
 
@@ -96,9 +94,9 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     all: allHistoryOrders.length,
     completed: getOrdersByStatus('completed').length,
     cancelled: getOrdersByStatus('cancelled').length,
-    archived: getOrdersByStatus('archived').length,
+    pending: getPendingOrders().length,
     deleted: getTrashedOrders().length,
-  }), [allHistoryOrders, getOrdersByStatus, getTrashedOrders]);
+  }), [allHistoryOrders, getOrdersByStatus, getPendingOrders, getTrashedOrders]);
 
   // Filtrar pedidos según tab activo y filtros adicionales
   const filteredOrders = useMemo(() => {
@@ -111,8 +109,8 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
       case 'cancelled':
         orders = getOrdersByStatus('cancelled');
         break;
-      case 'archived':
-        orders = getOrdersByStatus('archived');
+      case 'pending':
+        orders = getPendingOrders();
         break;
       case 'deleted':
         orders = getTrashedOrders();
@@ -160,7 +158,7 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     return orders.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [activeTab, allHistoryOrders, getOrdersByStatus, getTrashedOrders, typeFilter, dateRange, searchQuery]);
+  }, [activeTab, allHistoryOrders, getOrdersByStatus, getPendingOrders, getTrashedOrders, typeFilter, dateRange, searchQuery]);
 
   // Verificar si hay filtros activos
   const hasActiveFilters = useMemo(() => {
@@ -191,16 +189,6 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     await refreshHistory();
   };
 
-  const handleCompleteOrder = async (order: Order) => {
-    await updateOrderStatus(order.id, 'completed');
-    await refreshHistory();
-  };
-
-  const handleCancelOrder = async (order: Order) => {
-    await updateOrderStatus(order.id, 'cancelled');
-    await refreshHistory();
-  };
-
   return {
     // Datos
     completedOrders,
@@ -228,8 +216,6 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
 
     // Acciones de pedidos
     handleDeleteOrder,
-    handleCompleteOrder,
-    handleCancelOrder,
 
     // Utilidades
     clearFilters,

@@ -24,6 +24,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
   { id: 'payment', label: 'Pago', defaultVisible: true },
   { id: 'delivery', label: 'Entrega', defaultVisible: false },
   { id: 'products', label: 'Productos', defaultVisible: true },
+  { id: 'product_names', label: 'Nombre Productos', defaultVisible: true },
   { id: 'notes', label: 'Notas', defaultVisible: false },
   { id: 'created_at', label: 'Fecha Creación', defaultVisible: false },
   { id: 'actions', label: 'Acciones', defaultVisible: true },

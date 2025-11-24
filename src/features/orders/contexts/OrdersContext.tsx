@@ -44,6 +44,7 @@ interface OrdersContextType {
   getOrdersByType: (type: OrderType) => Order[];
   getArchivedOrders: () => Order[];
   getCompletedOrders: () => Order[];
+  getPendingOrders: () => Order[];
 
   // Filtros para historial (desde el estado historyOrders)
   getHistoryOrders: () => Order[];
@@ -350,6 +351,10 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
+  const getPendingOrders = (): Order[] => {
+    return orders.filter(order => order.status === 'pending');
+  };
+
   // Obtener historial desde el estado (cargado desde backend con filtros)
   const getHistoryOrders = (): Order[] => {
     return historyOrders;
@@ -392,6 +397,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     getOrdersByType,
     getArchivedOrders,
     getCompletedOrders,
+    getPendingOrders,
     getHistoryOrders,
     getOrdersByStatus,
     getTrashedOrders,

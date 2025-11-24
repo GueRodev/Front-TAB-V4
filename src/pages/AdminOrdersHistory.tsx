@@ -21,7 +21,7 @@ import {
   ArrowLeft,
   CheckCircle,
   XCircle,
-  Archive,
+  Clock,
   Search,
   X,
   Calendar,
@@ -62,8 +62,6 @@ const AdminOrdersHistory = () => {
     hasActiveFilters,
     restoreOrder,
     handleDeleteOrder,
-    handleCompleteOrder,
-    handleCancelOrder,
   } = useOrdersHistory();
 
   // Determinar qué acciones mostrar según el tab activo
@@ -73,7 +71,7 @@ const AdminOrdersHistory = () => {
     { value: 'all', label: 'Todos', icon: <History className="h-4 w-4" />, count: counts.all },
     { value: 'completed', label: 'Completados', icon: <CheckCircle className="h-4 w-4" />, count: counts.completed },
     { value: 'cancelled', label: 'Cancelados', icon: <XCircle className="h-4 w-4" />, count: counts.cancelled },
-    { value: 'archived', label: 'Archivados', icon: <Archive className="h-4 w-4" />, count: counts.archived },
+    { value: 'pending', label: 'Pendientes', icon: <Clock className="h-4 w-4" />, count: counts.pending },
     { value: 'deleted', label: 'Eliminados', icon: <Trash2 className="h-4 w-4" />, count: counts.deleted },
   ];
 
@@ -307,8 +305,6 @@ const AdminOrdersHistory = () => {
                         orders={filteredOrders}
                         onRestore={activeTab === 'deleted' ? restoreOrder : undefined}
                         onDelete={showActionsForTab ? handleDeleteOrder : undefined}
-                        onComplete={activeTab === 'cancelled' ? handleCompleteOrder : undefined}
-                        onCancel={activeTab === 'completed' ? handleCancelOrder : undefined}
                       />
                     </div>
 

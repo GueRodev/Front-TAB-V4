@@ -13,8 +13,6 @@ interface OrdersTableDynamicProps {
   orders: Order[];
   onArchive?: (orderId: string) => void;
   onDelete?: (orderId: string, order: Order) => void;
-  onComplete?: (order: Order) => void;
-  onCancel?: (order: Order) => void;
   onRestore?: (orderId: string) => void;
 }
 
@@ -22,13 +20,11 @@ export const OrdersTableDynamic = ({
   orders,
   onArchive,
   onDelete,
-  onComplete,
-  onCancel,
   onRestore,
 }: OrdersTableDynamicProps) => {
   const { visibleColumns, toggleColumn, isColumnVisible, resetToDefaults } = useOrderColumns();
 
-  const hasActions = onArchive || onDelete || onComplete || onCancel || onRestore;
+  const hasActions = onArchive || onDelete || onRestore;
 
   if (orders.length === 0) {
     return (
@@ -81,8 +77,6 @@ export const OrdersTableDynamic = ({
                   visibleColumns={hasActions ? visibleColumns : visibleColumns.filter(c => c !== 'actions')}
                   onArchive={onArchive}
                   onDelete={onDelete}
-                  onComplete={onComplete}
-                  onCancel={onCancel}
                   onRestore={onRestore}
                 />
               ))}
