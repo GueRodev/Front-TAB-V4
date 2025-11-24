@@ -14,7 +14,23 @@ import { transformLaravelOrder, transformToLaravelOrderPayload } from '../utils/
 interface OrderFilters {
   status?: OrderStatus | OrderStatus[];
   order_type?: OrderType;
+  page?: number;
   per_page?: number;
+}
+
+/**
+ * Respuesta paginada de pedidos
+ */
+export interface PaginatedOrdersResponse {
+  data: Order[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 /**
@@ -65,6 +81,58 @@ const getAll = async (isAdmin: boolean = false, filters?: OrderFilters): Promise
   const response = await api.get<any>(url);
   const ordersData = extractOrdersData(response.data);
   return ordersData.map(transformLaravelOrder);
+};
+
+/**
+ * Get all orders with pagination
+ * 🔗 LARAVEL: GET /api/admin/orders?status=X&page=Y&per_page=Z
+ */
+const getAllPaginated = async (filters?: OrderFilters): Promise<PaginatedOrdersResponse> => {
+  const endpoint = API_ENDPOINTS.ADMIN_ORDERS;
+
+  // Build query params
+  const params = new URLSearchParams();
+  if (filters?.status) {
+    if (Array.isArray(filters.status)) {
+      params.append('status', filters.status[0]);
+    } else {
+      params.append('status', filters.status);
+    }
+  }
+  if (filters?.order_type) {
+    params.append('order_type', filters.order_type);
+  }
+  if (filters?.page) {
+    params.append('page', filters.page.toString());
+  }
+  if (filters?.per_page) {
+    params.append('per_page', filters.per_page.toString());
+  }
+
+  const queryString = params.toString();
+  const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+
+  const response = await api.get<any>(url);
+
+  // Extraer datos y paginación de la respuesta de Laravel
+  const responseData = response.data?.data || response.data;
+  const ordersData = responseData?.data || responseData || [];
+  const laravelPagination = responseData;
+
+  // Transformar la paginación de Laravel al formato del frontend
+  const pagination = {
+    currentPage: laravelPagination?.current_page || 1,
+    totalPages: laravelPagination?.last_page || 1,
+    totalItems: laravelPagination?.total || ordersData.length,
+    itemsPerPage: laravelPagination?.per_page || 15,
+    hasNextPage: laravelPagination?.current_page < laravelPagination?.last_page,
+    hasPreviousPage: laravelPagination?.current_page > 1,
+  };
+
+  return {
+    data: Array.isArray(ordersData) ? ordersData.map(transformLaravelOrder) : [],
+    pagination,
+  };
 };
 
 /**
@@ -213,6 +281,7 @@ const deleteOrder = async (id: string): Promise<ApiResponse<void>> => {
 
 export const ordersService = {
   getAll,
+  getAllPaginated,
   getById,
   getByType,
   getArchived,

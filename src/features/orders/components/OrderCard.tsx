@@ -187,7 +187,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               onClick={handleComplete}
               size="sm"
-              className="w-full md:flex-1 bg-green-600 hover:bg-green-700 text-white"
+              className="w-full md:flex-1 bg-brand-orange hover:bg-brand-orange/90 text-white"
               disabled={isCompleting || isCancelling || isDeleting}
             >
               {isCompleting ? (
@@ -225,7 +225,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <Button
                 onClick={() => onDelete(order.id, order)}
                 size="sm"
-                className="w-full md:flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                className="w-full md:flex-1 bg-brand-darkBlue hover:bg-brand-darkBlue/90 text-white"
                 disabled={isCompleting || isCancelling || isDeleting}
               >
                 {isDeleting ? (

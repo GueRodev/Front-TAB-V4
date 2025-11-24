@@ -33,7 +33,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { EmptyState } from '@/components/common';
+import { EmptyState, PaginationControls } from '@/components/common';
 import {
   useOrdersHistory,
   OrderCard,
@@ -50,6 +50,8 @@ const AdminOrdersHistory = () => {
     activeTab,
     setActiveTab,
     counts,
+    pagination,
+    goToPage,
     typeFilter,
     setTypeFilter,
     dateRange,
@@ -331,6 +333,16 @@ const AdminOrdersHistory = () => {
                           )}
                         </div>
                       ))}
+                    </div>
+
+                    {/* Controles de paginación */}
+                    <div className="px-4 pb-4">
+                      <PaginationControls
+                        pagination={pagination}
+                        onPageChange={goToPage}
+                        loading={isLoading}
+                        itemLabel="pedidos"
+                      />
                     </div>
                   </>
                 )}

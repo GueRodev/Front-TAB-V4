@@ -1,13 +1,14 @@
 /**
  * Orders History Business Logic Hook
- * Manages completed/cancelled/archived/deleted orders with filters and exports
- * Usa datos del backend a través de OrdersContext
+ * Manages completed/cancelled/pending/deleted orders with filters, pagination and exports
+ * Usa datos del backend con paginación del servidor
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useOrders } from '../contexts';
+import { ordersService } from '../services';
 import { exportOrdersToPDF, exportOrdersToExcel } from '../helpers';
-import type { Order, OrderType } from '../types';
+import type { Order, OrderType, OrderStatus } from '../types';
 
 export type HistoryTab = 'all' | 'completed' | 'cancelled' | 'pending' | 'deleted';
 
@@ -16,11 +17,33 @@ interface DateRange {
   to: Date | null;
 }
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+const defaultPagination: PaginationInfo = {
+  currentPage: 1,
+  totalPages: 1,
+  totalItems: 0,
+  itemsPerPage: 15,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
+
 interface UseOrdersHistoryReturn {
   // Datos
   completedOrders: Order[]; // Mantener para compatibilidad
   filteredOrders: Order[];
   isLoading: boolean;
+
+  // Paginación
+  pagination: PaginationInfo;
+  goToPage: (page: number) => void;
 
   // Tabs
   activeTab: HistoryTab;
@@ -59,21 +82,16 @@ interface UseOrdersHistoryReturn {
 
 export const useOrdersHistory = (): UseOrdersHistoryReturn => {
   const {
-    historyOrders,
-    isLoadingHistory,
-    refreshHistory,
-    getOrdersByStatus,
     getCompletedOrders,
-    getPendingOrders,
-    getTrashedOrders,
     restoreOrder,
     deleteOrder,
+    orders, // Pedidos activos para pending
   } = useOrders();
 
-  // Cargar historial cuando se monta el hook
-  useEffect(() => {
-    refreshHistory();
-  }, [refreshHistory]);
+  // Estado de datos paginados
+  const [paginatedOrders, setPaginatedOrders] = useState<Order[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>(defaultPagination);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Estado de tabs
   const [activeTab, setActiveTab] = useState<HistoryTab>('all');
@@ -83,52 +101,135 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
   const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Usar historyOrders directamente del contexto (cargado desde backend)
-  const allHistoryOrders = historyOrders;
+  // Contadores por tab (se cargan una vez)
+  const [counts, setCounts] = useState({
+    all: 0,
+    completed: 0,
+    cancelled: 0,
+    pending: 0,
+    deleted: 0,
+  });
+
+  // Mapear tab a status del backend
+  const getStatusForTab = (tab: HistoryTab): OrderStatus | undefined => {
+    switch (tab) {
+      case 'completed': return 'completed';
+      case 'cancelled': return 'cancelled';
+      case 'pending': return 'pending';
+      default: return undefined;
+    }
+  };
+
+  // Cargar pedidos paginados del backend
+  const loadOrders = useCallback(async (page: number = 1) => {
+    setIsLoading(true);
+    try {
+      if (activeTab === 'deleted') {
+        // Los eliminados usan endpoint especial sin paginación
+        const trashedOrders = await ordersService.getTrashed();
+        setPaginatedOrders(trashedOrders);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: trashedOrders.length,
+          itemsPerPage: trashedOrders.length,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        });
+      } else if (activeTab === 'pending') {
+        // Los pending vienen de orders activos (no del historial)
+        const pendingOrders = orders.filter(o => o.status === 'pending');
+        setPaginatedOrders(pendingOrders);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: pendingOrders.length,
+          itemsPerPage: pendingOrders.length,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        });
+      } else {
+        // Tabs con paginación del servidor (all, completed, cancelled)
+        const status = getStatusForTab(activeTab);
+        const response = await ordersService.getAllPaginated({
+          status,
+          page,
+          per_page: 15,
+        });
+        setPaginatedOrders(response.data);
+        setPagination(response.pagination);
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      setPaginatedOrders([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeTab, orders]);
+
+  // Cargar contadores iniciales
+  const loadCounts = useCallback(async () => {
+    try {
+      const [completedRes, cancelledRes, trashedOrders] = await Promise.all([
+        ordersService.getAllPaginated({ status: 'completed', per_page: 1 }),
+        ordersService.getAllPaginated({ status: 'cancelled', per_page: 1 }),
+        ordersService.getTrashed(),
+      ]);
+
+      const pendingCount = orders.filter(o => o.status === 'pending').length;
+      const allCount = completedRes.pagination.totalItems + cancelledRes.pagination.totalItems;
+
+      setCounts({
+        all: allCount,
+        completed: completedRes.pagination.totalItems,
+        cancelled: cancelledRes.pagination.totalItems,
+        pending: pendingCount,
+        deleted: trashedOrders.length,
+      });
+    } catch (error) {
+      console.error('Error loading counts:', error);
+    }
+  }, [orders]);
+
+  // Cargar datos cuando cambia el tab o la página
+  useEffect(() => {
+    loadOrders(1);
+  }, [activeTab]);
+
+  // Cargar contadores al montar
+  useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
+
+  // Cambiar de página
+  const goToPage = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    loadOrders(page);
+  };
+
+  // Refrescar historial
+  const refreshHistory = async () => {
+    await loadOrders(pagination.currentPage);
+    await loadCounts();
+  };
 
   // Mantener compatibilidad con código existente
   const completedOrders = getCompletedOrders();
 
-  // Contadores por tab
-  const counts = useMemo(() => ({
-    all: allHistoryOrders.length,
-    completed: getOrdersByStatus('completed').length,
-    cancelled: getOrdersByStatus('cancelled').length,
-    pending: getPendingOrders().length,
-    deleted: getTrashedOrders().length,
-  }), [allHistoryOrders, getOrdersByStatus, getPendingOrders, getTrashedOrders]);
-
-  // Filtrar pedidos según tab activo y filtros adicionales
+  // Filtrar pedidos client-side (búsqueda, tipo, fechas)
   const filteredOrders = useMemo(() => {
-    // Primero filtrar por tab
-    let orders: Order[];
-    switch (activeTab) {
-      case 'completed':
-        orders = getOrdersByStatus('completed');
-        break;
-      case 'cancelled':
-        orders = getOrdersByStatus('cancelled');
-        break;
-      case 'pending':
-        orders = getPendingOrders();
-        break;
-      case 'deleted':
-        orders = getTrashedOrders();
-        break;
-      default:
-        orders = allHistoryOrders;
-    }
+    let filtered = paginatedOrders;
 
     // Filtrar por tipo de pedido
     if (typeFilter !== 'all') {
-      orders = orders.filter(order => order.type === typeFilter);
+      filtered = filtered.filter(order => order.type === typeFilter);
     }
 
     // Filtrar por rango de fechas
     if (dateRange.from) {
       const fromDate = new Date(dateRange.from);
       fromDate.setHours(0, 0, 0, 0);
-      orders = orders.filter(order => {
+      filtered = filtered.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate >= fromDate;
       });
@@ -137,7 +238,7 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     if (dateRange.to) {
       const toDate = new Date(dateRange.to);
       toDate.setHours(23, 59, 59, 999);
-      orders = orders.filter(order => {
+      filtered = filtered.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate <= toDate;
       });
@@ -146,7 +247,7 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     // Filtrar por búsqueda (nombre cliente, teléfono, número de orden)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      orders = orders.filter(order =>
+      filtered = filtered.filter(order =>
         order.customerInfo?.name?.toLowerCase().includes(query) ||
         order.customerInfo?.phone?.includes(query) ||
         order.order_number?.toLowerCase().includes(query) ||
@@ -155,10 +256,10 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     }
 
     // Ordenar por fecha (más recientes primero)
-    return orders.sort((a, b) =>
+    return filtered.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [activeTab, allHistoryOrders, getOrdersByStatus, getPendingOrders, getTrashedOrders, typeFilter, dateRange, searchQuery]);
+  }, [paginatedOrders, typeFilter, dateRange, searchQuery]);
 
   // Verificar si hay filtros activos
   const hasActiveFilters = useMemo(() => {
@@ -189,15 +290,24 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     await refreshHistory();
   };
 
+  // Handler para cambiar tab (resetea a página 1)
+  const handleSetActiveTab = (tab: HistoryTab) => {
+    setActiveTab(tab);
+  };
+
   return {
     // Datos
     completedOrders,
     filteredOrders,
-    isLoading: isLoadingHistory,
+    isLoading,
+
+    // Paginación
+    pagination,
+    goToPage,
 
     // Tabs
     activeTab,
-    setActiveTab,
+    setActiveTab: handleSetActiveTab,
 
     // Contadores
     counts,

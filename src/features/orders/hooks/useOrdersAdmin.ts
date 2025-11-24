@@ -435,11 +435,14 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
         description: "El pedido ha sido creado. Complétalo para confirmar la venta.",
       });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo crear el pedido",
-        variant: "destructive",
-      });
+      // Solo mostrar toast genérico si no es error de stock (el contexto ya muestra ese toast)
+      if (error instanceof Error && !error.message.includes('Stock insuficiente')) {
+        toast({
+          title: "Error",
+          description: "No se pudo crear el pedido",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsCreatingOrder(false);
     }

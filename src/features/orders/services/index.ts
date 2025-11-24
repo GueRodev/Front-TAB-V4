@@ -2,4 +2,4 @@
  * Orders Services
  */
 
-export { ordersService } from './orders.service';
+export { ordersService, type PaginatedOrdersResponse } from './orders.service';

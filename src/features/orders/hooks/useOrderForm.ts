@@ -326,21 +326,24 @@ export const useOrderForm = () => {
     } catch (error: any) {
       console.error('Error creating order:', error);
 
-      // Extract error message from backend response if available
-      let errorMessage = "No se pudo crear el pedido. Intenta de nuevo.";
-      if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
+      // Solo mostrar toast genérico si no es error de stock (el contexto ya muestra ese toast)
+      if (!(error?.message?.includes('Stock insuficiente'))) {
+        // Extract error message from backend response if available
+        let errorMessage = "No se pudo crear el pedido. Intenta de nuevo.";
+        if (error?.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
 
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
 
       return false;
     } finally {

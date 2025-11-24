@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCartOperations, CartItemsList, EmptyCart, CartSummary, OrderForm, AddressConfirmationDialog, OrderConfirmationDialog } from '@/features/cart';
 import { Header, Footer } from '@/components/layout';
 import { useOrderForm, AddressSelector } from '@/features/orders';
 import { LoadingOverlay } from '@/components/common';
+import { useAuth } from '@/features/auth';
 
 /**
  * Cart Page
  * Checkout page with cart items and order form
  */
 const Cart = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
   const {
     items,
     totalPrice,
@@ -38,8 +42,25 @@ const Cart = () => {
   const [showAddressConfirmation, setShowAddressConfirmation] = useState(false);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Procesando...');
+  const [loadingSubmessage, setLoadingSubmessage] = useState<string | undefined>(undefined);
 
   const handleSubmit = () => {
+    // Verificar si el usuario está autenticado
+    if (!isAuthenticated) {
+      // Mostrar overlay de redirección
+      setLoadingMessage('Debes iniciar sesión');
+      setLoadingSubmessage('Redirigiendo al login...');
+      setShowLoadingOverlay(true);
+
+      // Redirigir al login después de un breve delay
+      setTimeout(() => {
+        setShowLoadingOverlay(false);
+        navigate('/auth', { state: { from: '/cart' } });
+      }, 1500);
+      return;
+    }
+
     if (deliveryOption === 'delivery' && deliveryAddress) {
       // Si es envío a domicilio, mostrar confirmación de dirección
       setShowAddressConfirmation(true);
@@ -52,6 +73,8 @@ const Cart = () => {
   const handleConfirmAddress = async () => {
     // Cerrar modal y mostrar overlay
     setShowAddressConfirmation(false);
+    setLoadingMessage('Enviando pedido...');
+    setLoadingSubmessage('Redirigiendo a WhatsApp');
     setShowLoadingOverlay(true);
 
     const success = await submitOrder();
@@ -65,6 +88,8 @@ const Cart = () => {
   const handleConfirmOrder = async () => {
     // Cerrar modal y mostrar overlay
     setShowOrderConfirmation(false);
+    setLoadingMessage('Enviando pedido...');
+    setLoadingSubmessage('Redirigiendo a WhatsApp');
     setShowLoadingOverlay(true);
 
     const success = await submitOrder();
@@ -169,11 +194,11 @@ const Cart = () => {
 
       <Footer />
 
-      {/* Loading overlay for WhatsApp redirect */}
+      {/* Loading overlay for authentication redirect or WhatsApp */}
       <LoadingOverlay
         isVisible={showLoadingOverlay}
-        message="Enviando pedido..."
-        submessage="Redirigiendo a WhatsApp"
+        message={loadingMessage}
+        submessage={loadingSubmessage}
       />
     </div>
   );
