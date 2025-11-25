@@ -6,7 +6,7 @@
 // Components
 export {
   OrderCard,
-  ArchivedOrderCard,
+  // ArchivedOrderCard, // Archived functionality disabled
   OrdersList,
   OrdersTable,
   OrderStatusBadge,

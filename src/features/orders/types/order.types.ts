@@ -3,6 +3,7 @@
  * Centralized types for orders and order items
  */
 
+// Note: 'in_progress' and 'archived' are disabled but kept in type for TypeScript compatibility
 export type OrderStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'archived';
 export type OrderType = 'online' | 'in-store';
 export type DeliveryOption = 'pickup' | 'delivery';
@@ -49,7 +50,7 @@ export interface Order {
   deliveryOption?: DeliveryOption;
   paymentMethod?: string;
   notes?: string;
-  archived?: boolean;
-  archivedAt?: string;
+  // archived?: boolean; // Archived functionality disabled
+  // archivedAt?: string; // Archived functionality disabled
   deleted_at?: string | null;
 }

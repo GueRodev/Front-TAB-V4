@@ -15,6 +15,7 @@ interface ProductCardProps {
   stock?: number;
   badge?: 'new' | 'sale';
   isWishlisted?: boolean;
+  loading?: 'lazy' | 'eager';
   onToggleWishlist?: (e: React.MouseEvent, productId: string) => void;
   onAddToCart?: (e: React.MouseEvent, productId: string) => void;
   onProductClick?: (productId: string) => void;
@@ -31,6 +32,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   stock,
   badge,
   isWishlisted = false,
+  loading = 'lazy',
   onToggleWishlist,
   onAddToCart,
   onProductClick,
@@ -54,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }}
     >
       <div className="relative">
-        <div 
+        <div
           onClick={() => onProductClick?.(id)}
           className="block aspect-square overflow-hidden cursor-pointer"
         >
@@ -62,6 +64,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             src={image}
             alt={name}
             variant="card"
+            loading={loading}
             className="transform group-hover:scale-105 transition-transform duration-500"
           />
         </div>

@@ -21,12 +21,12 @@ import { STORAGE_KEYS } from '@/config';
 import { useAuth } from '@/features/auth';
 
 interface OrdersContextType {
-  // Pedidos activos (pending, in_progress)
+  // Pedidos activos (pending only - in_progress disabled)
   orders: Order[];
   isLoading: boolean;
   refreshOrders: () => Promise<void>;
 
-  // Historial de pedidos (completed, cancelled, archived, deleted) - desde backend
+  // Historial de pedidos (completed, cancelled, deleted) - desde backend
   historyOrders: Order[];
   isLoadingHistory: boolean;
   refreshHistory: () => Promise<void>;
@@ -34,15 +34,15 @@ interface OrdersContextType {
   // Acciones
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'order_number' | 'subtotal' | 'shipping_cost' | 'total' | 'updatedAt'>) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
-  markInProgress: (orderId: string) => Promise<void>;
+  // markInProgress: (orderId: string) => Promise<void>; // In-progress functionality disabled
   deleteOrder: (orderId: string) => Promise<void>;
-  archiveOrder: (orderId: string) => Promise<void>;
-  unarchiveOrder: (orderId: string) => Promise<void>;
-  restoreOrder: (orderId: string) => Promise<void>;
+  // archiveOrder: (orderId: string) => Promise<void>; // Archived functionality disabled
+  // unarchiveOrder: (orderId: string) => Promise<void>; // Archived functionality disabled
+  // restoreOrder: (orderId: string) => Promise<void>; // Restore functionality disabled
 
   // Filtros locales (para pedidos activos)
   getOrdersByType: (type: OrderType) => Order[];
-  getArchivedOrders: () => Order[];
+  // getArchivedOrders: () => Order[]; // Archived functionality disabled
   getCompletedOrders: () => Order[];
   getPendingOrders: () => Order[];
 
@@ -197,13 +197,13 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const previousStatus = currentOrder.status;
 
-      // Validate status transitions
+      // Validate status transitions (in_progress and archived disabled)
       const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-        'pending': ['in_progress', 'completed', 'cancelled'],
-        'in_progress': ['completed', 'cancelled'],
+        'pending': ['completed', 'cancelled'], // Removed 'in_progress'
+        // 'in_progress': ['completed', 'cancelled'], // In-progress functionality disabled
         'completed': [],
         'cancelled': [],
-        'archived': [],
+        // 'archived': [], // Archived functionality disabled
       };
 
       if (!validTransitions[previousStatus]?.includes(status)) {
@@ -235,47 +235,48 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const markInProgress = async (orderId: string): Promise<void> => {
-    try {
-      const currentOrder = orders.find(o => o.id === orderId);
+  // In-progress functionality disabled
+  // const markInProgress = async (orderId: string): Promise<void> => {
+  //   try {
+  //     const currentOrder = orders.find(o => o.id === orderId);
 
-      if (!currentOrder) {
-        throw new Error('Pedido no encontrado');
-      }
+  //     if (!currentOrder) {
+  //       throw new Error('Pedido no encontrado');
+  //     }
 
-      // Validate transition (only from pending)
-      if (currentOrder.status !== 'pending') {
-        toast.error('Transición inválida', {
-          description: 'Solo se pueden marcar como "en proceso" los pedidos pendientes',
-        });
-        return;
-      }
+  //     // Validate transition (only from pending)
+  //     if (currentOrder.status !== 'pending') {
+  //       toast.error('Transición inválida', {
+  //         description: 'Solo se pueden marcar como "en proceso" los pedidos pendientes',
+  //       });
+  //       return;
+  //     }
 
-      // Call service
-      await ordersService.markInProgress(orderId);
+  //     // Call service
+  //     await ordersService.markInProgress(orderId);
 
-      // Stock remains reserved (no movement needed - backend handles this)
+  //     // Stock remains reserved (no movement needed - backend handles this)
 
-      // Update local state
-      setOrders(prev =>
-        prev.map(order =>
-          order.id === orderId
-            ? { ...order, status: 'in_progress' as OrderStatus, updatedAt: new Date().toISOString() }
-            : order
-        )
-      );
+  //     // Update local state
+  //     setOrders(prev =>
+  //       prev.map(order =>
+  //         order.id === orderId
+  //           ? { ...order, status: 'in_progress' as OrderStatus, updatedAt: new Date().toISOString() }
+  //           : order
+  //       )
+  //     );
 
-      toast.success('Pedido actualizado', {
-        description: 'El pedido está ahora en proceso',
-      });
-    } catch (error) {
-      console.error('Error marking order in progress:', error);
-      toast.error('Error', {
-        description: 'No se pudo actualizar el pedido',
-      });
-      throw error;
-    }
-  };
+  //     toast.success('Pedido actualizado', {
+  //       description: 'El pedido está ahora en proceso',
+  //     });
+  //   } catch (error) {
+  //     console.error('Error marking order in progress:', error);
+  //     toast.error('Error', {
+  //       description: 'No se pudo actualizar el pedido',
+  //     });
+  //     throw error;
+  //   }
+  // };
 
   const deleteOrder = async (orderId: string): Promise<void> => {
     // Call service to persist
@@ -286,64 +287,67 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setOrders(prev => prev.filter(order => order.id !== orderId));
   };
 
-  const archiveOrder = async (orderId: string): Promise<void> => {
-    // Call service to persist
-    await ordersService.archive(orderId);
+  // Archived functionality disabled
+  // const archiveOrder = async (orderId: string): Promise<void> => {
+  //   // Call service to persist
+  //   await ordersService.archive(orderId);
 
-    // Update local state
-    setOrders(prev =>
-      prev.map(order =>
-        order.id === orderId
-          ? { ...order, status: 'archived' as OrderStatus, archived: true, archivedAt: new Date().toISOString() }
-          : order
-      )
-    );
-  };
+  //   // Update local state
+  //   setOrders(prev =>
+  //     prev.map(order =>
+  //       order.id === orderId
+  //         ? { ...order, status: 'archived' as OrderStatus, archived: true, archivedAt: new Date().toISOString() }
+  //         : order
+  //     )
+  //   );
+  // };
 
-  const unarchiveOrder = async (orderId: string): Promise<void> => {
-    // Call service to persist
-    await ordersService.unarchive(orderId);
+  // const unarchiveOrder = async (orderId: string): Promise<void> => {
+  //   // Call service to persist
+  //   await ordersService.unarchive(orderId);
 
-    // Update local state
-    setOrders(prev =>
-      prev.map(order =>
-        order.id === orderId
-          ? { ...order, status: 'completed' as OrderStatus, archived: false, archivedAt: undefined }
-          : order
-      )
-    );
-  };
+  //   // Update local state
+  //   setOrders(prev =>
+  //     prev.map(order =>
+  //       order.id === orderId
+  //         ? { ...order, status: 'completed' as OrderStatus, archived: false, archivedAt: undefined }
+  //         : order
+  //     )
+  //   );
+  // };
 
-  const restoreOrder = async (orderId: string): Promise<void> => {
-    try {
-      // Call service to restore trashed order
-      const result = await ordersService.restore(orderId);
+  // Restore functionality disabled
+  // const restoreOrder = async (orderId: string): Promise<void> => {
+  //   try {
+  //     // Call service to restore trashed order
+  //     const result = await ordersService.restore(orderId);
 
-      // Add restored order to active orders
-      setOrders(prev => [result.data, ...prev]);
+  //     // Add restored order to active orders
+  //     setOrders(prev => [result.data, ...prev]);
 
-      // Remove from history
-      setHistoryOrders(prev => prev.filter(order => order.id !== orderId));
+  //     // Remove from history
+  //     setHistoryOrders(prev => prev.filter(order => order.id !== orderId));
 
-      toast.success('Pedido restaurado', {
-        description: 'El pedido ha sido restaurado exitosamente',
-      });
-    } catch (error) {
-      console.error('Error restoring order:', error);
-      toast.error('Error', {
-        description: 'No se pudo restaurar el pedido',
-      });
-      throw error;
-    }
-  };
+  //     toast.success('Pedido restaurado', {
+  //       description: 'El pedido ha sido restaurado exitosamente',
+  //     });
+  //   } catch (error) {
+  //     console.error('Error restoring order:', error);
+  //     toast.error('Error', {
+  //       description: 'No se pudo restaurar el pedido',
+  //     });
+  //     throw error;
+  //   }
+  // };
 
   const getOrdersByType = (type: OrderType): Order[] => {
-    return orders.filter(order => order.type === type && !order.archived);
+    return orders.filter(order => order.type === type);
   };
 
-  const getArchivedOrders = (): Order[] => {
-    return orders.filter(order => order.archived || order.status === 'archived');
-  };
+  // Archived functionality disabled
+  // const getArchivedOrders = (): Order[] => {
+  //   return orders.filter(order => order.archived || order.status === 'archived');
+  // };
 
   const getCompletedOrders = (): Order[] => {
     return orders.filter(order =>
@@ -362,10 +366,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Filtrar historial por status específico (desde historyOrders)
   const getOrdersByStatus = (status: OrderStatus): Order[] => {
-    if (status === 'archived') {
-      return historyOrders.filter(order => order.status === 'archived' || order.archived);
-    }
-    return historyOrders.filter(order => order.status === status && !order.archived && !order.deleted_at);
+    return historyOrders.filter(order => order.status === status && !order.deleted_at);
   };
 
   // Obtener pedidos eliminados (soft deleted)
@@ -387,15 +388,15 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Acciones
     addOrder,
     updateOrderStatus,
-    markInProgress,
+    // markInProgress, // In-progress functionality disabled
     deleteOrder,
-    archiveOrder,
-    unarchiveOrder,
-    restoreOrder,
+    // archiveOrder, // Archived functionality disabled
+    // unarchiveOrder, // Archived functionality disabled
+    // restoreOrder, // Restore functionality disabled
 
     // Filtros
     getOrdersByType,
-    getArchivedOrders,
+    // getArchivedOrders, // Archived functionality disabled
     getCompletedOrders,
     getPendingOrders,
     getHistoryOrders,

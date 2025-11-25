@@ -77,13 +77,13 @@ interface UseOrdersHistoryReturn {
   clearFilters: () => void;
   hasActiveFilters: boolean;
   refreshHistory: () => Promise<void>;
-  restoreOrder: (orderId: string) => Promise<void>;
+  // restoreOrder: (orderId: string) => Promise<void>; // Restore functionality disabled
 }
 
 export const useOrdersHistory = (): UseOrdersHistoryReturn => {
   const {
     getCompletedOrders,
-    restoreOrder,
+    // restoreOrder, // Restore functionality disabled
     deleteOrder,
     orders, // Pedidos activos para pending
   } = useOrders();
@@ -331,6 +331,6 @@ export const useOrdersHistory = (): UseOrdersHistoryReturn => {
     clearFilters,
     refreshHistory,
     hasActiveFilters,
-    restoreOrder,
+    // restoreOrder, // Restore functionality disabled
   };
 };

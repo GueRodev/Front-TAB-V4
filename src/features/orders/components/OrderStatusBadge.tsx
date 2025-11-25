@@ -4,7 +4,7 @@
  */
 
 import { Badge } from '@/components/ui/badge';
-import { Package, CheckCircle, XCircle, Archive, Trash2, Clock, Loader2 } from 'lucide-react';
+import { Package, CheckCircle, XCircle, Trash2, Clock } from 'lucide-react'; // Removed Loader2, Archive - in_progress and archived disabled
 import type { OrderStatus } from '../types';
 
 interface OrderStatusBadgeProps {
@@ -30,12 +30,13 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status, dele
       icon: Clock,
       className: 'bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600',
     },
-    in_progress: {
-      label: 'En Proceso',
-      variant: 'default' as const,
-      icon: Loader2,
-      className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100',
-    },
+    // In-progress functionality disabled
+    // in_progress: {
+    //   label: 'En Proceso',
+    //   variant: 'default' as const,
+    //   icon: Loader2,
+    //   className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100',
+    // },
     completed: {
       label: 'Finalizado',
       variant: 'default' as const,
@@ -48,19 +49,20 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status, dele
       icon: XCircle,
       className: '',
     },
-    archived: {
-      label: 'Archivado',
-      variant: 'outline' as const,
-      icon: Archive,
-      className: 'text-muted-foreground',
-    },
+    // Archived functionality disabled
+    // archived: {
+    //   label: 'Archivado',
+    //   variant: 'outline' as const,
+    //   icon: Archive,
+    //   className: 'text-muted-foreground',
+    // },
   };
 
   const { label, variant, icon: Icon, className } = config[status];
 
   return (
     <Badge variant={variant} className={`gap-1 text-xs whitespace-nowrap ${className}`}>
-      <Icon className={`h-3 w-3 md:h-3.5 md:w-3.5 ${status === 'in_progress' ? 'animate-spin' : ''}`} />
+      <Icon className={`h-3 w-3 md:h-3.5 md:w-3.5`} /> {/* Removed in_progress animation */}
       <span className="hidden sm:inline">{label}</span>
     </Badge>
   );

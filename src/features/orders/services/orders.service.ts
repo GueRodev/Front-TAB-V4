@@ -153,31 +153,31 @@ const getTrashed = async (): Promise<Order[]> => {
 /**
  * Restore a trashed order
  * 🔗 LARAVEL: PATCH /api/admin/orders/{id}/restore
+ * DISABLED: Restore functionality not needed
  */
-const restore = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.patch<ApiResponse<any>>(API_ENDPOINTS.ADMIN_ORDER_RESTORE(id));
-  return {
-    ...response.data,
-    data: transformLaravelOrder(response.data.data),
-  };
-};
+// const restore = async (id: string): Promise<ApiResponse<Order>> => {
+//   const response = await api.patch<ApiResponse<any>>(API_ENDPOINTS.ADMIN_ORDER_RESTORE(id));
+//   return {
+//     ...response.data,
+//     data: transformLaravelOrder(response.data.data),
+//   };
+// };
 
 /**
- * Get orders for history (completed, cancelled, archived, deleted)
+ * Get orders for history (completed, cancelled, deleted)
  * 🔗 LARAVEL: Multiple calls to GET /api/admin/orders?status=X + /api/admin/orders-trashed
  */
 const getHistory = async (): Promise<Order[]> => {
   try {
     // Hacer llamadas paralelas para cada status del historial + eliminados
-    const [completed, cancelled, archived, trashed] = await Promise.all([
+    const [completed, cancelled, trashed] = await Promise.all([
       getAll(true, { status: 'completed' }),
       getAll(true, { status: 'cancelled' }),
-      getAll(true, { status: 'archived' }),
       getTrashed(),
     ]);
 
     // Combinar y ordenar por fecha (más recientes primero)
-    const allHistory = [...completed, ...cancelled, ...archived, ...trashed];
+    const allHistory = [...completed, ...cancelled, ...trashed];
     return allHistory.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -202,12 +202,13 @@ const getById = async (id: string): Promise<Order | null> => {
 
 const getByType = async (type: OrderType): Promise<Order[]> => {
   const orders = await getAll();
-  return orders.filter(order => order.type === type && !order.archived);
+  return orders.filter(order => order.type === type);
 };
 
-const getArchived = async (): Promise<Order[]> => {
-  return getByStatus('archived');
-};
+// Archived functionality disabled
+// const getArchived = async (): Promise<Order[]> => {
+//   return getByStatus('archived');
+// };
 
 const createOnlineOrder = async (data: Omit<Order, 'id' | 'createdAt' | 'order_number'>): Promise<ApiResponse<Order>> => {
   // Transform frontend format to Laravel API format
@@ -233,13 +234,14 @@ const create = async (data: Omit<Order, 'id' | 'createdAt' | 'order_number'>): P
   return data.type === 'online' ? createOnlineOrder(data) : createInStoreOrder(data);
 };
 
-const markInProgress = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.patch<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/mark-in-progress`);
-  return {
-    ...response.data,
-    data: transformLaravelOrder(response.data.data),
-  };
-};
+// In-progress functionality disabled
+// const markInProgress = async (id: string): Promise<ApiResponse<Order>> => {
+//   const response = await api.patch<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/mark-in-progress`);
+//   return {
+//     ...response.data,
+//     data: transformLaravelOrder(response.data.data),
+//   };
+// };
 
 const updateStatus = async (id: string, status: OrderStatus): Promise<ApiResponse<Order>> => {
   let endpoint = `${API_ENDPOINTS.ADMIN_ORDERS}/${id}`;
@@ -254,21 +256,22 @@ const updateStatus = async (id: string, status: OrderStatus): Promise<ApiRespons
   };
 };
 
-const archive = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.post<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/archive`);
-  return {
-    ...response.data,
-    data: transformLaravelOrder(response.data.data),
-  };
-};
+// Archived functionality disabled
+// const archive = async (id: string): Promise<ApiResponse<Order>> => {
+//   const response = await api.post<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/archive`);
+//   return {
+//     ...response.data,
+//     data: transformLaravelOrder(response.data.data),
+//   };
+// };
 
-const unarchive = async (id: string): Promise<ApiResponse<Order>> => {
-  const response = await api.patch<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/unarchive`);
-  return {
-    ...response.data,
-    data: transformLaravelOrder(response.data.data),
-  };
-};
+// const unarchive = async (id: string): Promise<ApiResponse<Order>> => {
+//   const response = await api.patch<ApiResponse<any>>(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}/unarchive`);
+//   return {
+//     ...response.data,
+//     data: transformLaravelOrder(response.data.data),
+//   };
+// };
 
 const deleteOrder = async (id: string): Promise<ApiResponse<void>> => {
   await api.delete(`${API_ENDPOINTS.ADMIN_ORDERS}/${id}`);
@@ -284,17 +287,17 @@ export const ordersService = {
   getAllPaginated,
   getById,
   getByType,
-  getArchived,
+  // getArchived, // Archived functionality disabled
   getHistory,
   getByStatus,
   getTrashed,
   create,
   createOnlineOrder,
   createInStoreOrder,
-  markInProgress,
+  // markInProgress, // In-progress functionality disabled
   updateStatus,
-  archive,
-  unarchive,
-  restore,
+  // archive, // Archived functionality disabled
+  // unarchive, // Archived functionality disabled
+  // restore, // Restore functionality disabled
   deleteOrder,
 };

@@ -6,7 +6,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableRow, TableCell } from '@/components/ui/table';
-import { Archive, Trash2, RotateCcw } from 'lucide-react';
+import { Trash2 } from 'lucide-react'; // Removed RotateCcw - restore functionality disabled
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { OrderStatusBadge } from './OrderStatusBadge';
@@ -15,17 +15,15 @@ import type { Order } from '../types';
 interface OrderRowDynamicProps {
   order: Order;
   visibleColumns: string[];
-  onArchive?: (orderId: string) => void;
   onDelete?: (orderId: string, order: Order) => void;
-  onRestore?: (orderId: string) => void;
+  // onRestore?: (orderId: string) => void; // Restore functionality disabled
 }
 
 export const OrderRowDynamic = ({
   order,
   visibleColumns,
-  onArchive,
   onDelete,
-  onRestore,
+  // onRestore, // Restore functionality disabled
 }: OrderRowDynamicProps) => {
   const isVisible = (columnId: string) => visibleColumns.includes(columnId);
 
@@ -47,7 +45,7 @@ export const OrderRowDynamic = ({
     }
   };
 
-  const hasActions = onArchive || onDelete || onRestore;
+  const hasActions = onDelete; // Removed onRestore - restore functionality disabled
 
   return (
     <TableRow className="hover:bg-gray-50">
@@ -165,18 +163,7 @@ export const OrderRowDynamic = ({
       {isVisible('actions') && hasActions && (
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
-            {order.status !== 'pending' && !order.deleted_at && onArchive && (
-              <Button
-                onClick={() => onArchive(order.id)}
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                title="Archivar"
-              >
-                <Archive className="h-4 w-4" />
-              </Button>
-            )}
-            {order.status !== 'pending' && !order.deleted_at && onDelete && (
+            {!order.deleted_at && onDelete && (
               <Button
                 onClick={() => onDelete(order.id, order)}
                 size="sm"
@@ -187,7 +174,8 @@ export const OrderRowDynamic = ({
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
-            {order.deleted_at && onRestore && (
+            {/* Restore functionality disabled */}
+            {/* {order.deleted_at && onRestore && (
               <Button
                 onClick={() => onRestore(order.id)}
                 size="sm"
@@ -197,7 +185,7 @@ export const OrderRowDynamic = ({
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
-            )}
+            )} */}
           </div>
         </TableCell>
       )}

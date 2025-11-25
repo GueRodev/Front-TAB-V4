@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { EyeOff, Trash2, CheckCircle, XCircle, Mail, Loader2, Store, X } from 'lucide-react';
+import { EyeOff, CheckCircle, XCircle, Mail, Loader2, Store, X } from 'lucide-react';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { cn } from '@/lib/utils';
 import type { Order } from '../types';
@@ -16,28 +16,24 @@ interface OrderCardProps {
   order: Order;
   showDeliveryInfo?: boolean;
   onHide?: (orderId: string) => void;
-  onDelete?: (orderId: string, order: Order) => void;
   onRemove?: (orderId: string) => void; // Quita definitivamente de la bandeja
   onComplete?: (order: Order) => void;
   onCancel?: (order: Order) => void;
   onCompleteWithConfirmation?: (order: Order) => void;
   isCompleting?: boolean;
   isCancelling?: boolean;
-  isDeleting?: boolean;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
   order,
   showDeliveryInfo = false,
   onHide,
-  onDelete,
   onRemove,
   onComplete,
   onCancel,
   onCompleteWithConfirmation,
   isCompleting = false,
   isCancelling = false,
-  isDeleting = false,
 }) => {
   const handleComplete = () => {
     if (order.type === 'online' && onCompleteWithConfirmation) {
@@ -187,8 +183,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Button
               onClick={handleComplete}
               size="sm"
-              className="w-full md:flex-1 bg-brand-orange hover:bg-brand-orange/90 text-white"
-              disabled={isCompleting || isCancelling || isDeleting}
+              className="w-full md:flex-1 bg-brand-darkBlue hover:bg-brand-darkBlue/90 text-white"
+              disabled={isCompleting || isCancelling}
             >
               {isCompleting ? (
                 <>
@@ -207,7 +203,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               size="sm"
               variant="destructive"
               className="w-full md:flex-1"
-              disabled={isCompleting || isCancelling || isDeleting}
+              disabled={isCompleting || isCancelling}
             >
               {isCancelling ? (
                 <>
@@ -221,26 +217,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 </>
               )}
             </Button>
-            {onDelete && (
-              <Button
-                onClick={() => onDelete(order.id, order)}
-                size="sm"
-                className="w-full md:flex-1 bg-brand-darkBlue hover:bg-brand-darkBlue/90 text-white"
-                disabled={isCompleting || isCancelling || isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 animate-spin" />
-                    <span className="text-xs md:text-sm font-semibold">Eliminando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
-                    <span className="text-xs md:text-sm font-semibold">Eliminar</span>
-                  </>
-                )}
-              </Button>
-            )}
           </>
         )}
         {(order.status === 'completed' || order.status === 'cancelled') && (onHide || onRemove) && (

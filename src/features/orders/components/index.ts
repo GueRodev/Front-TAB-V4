@@ -10,7 +10,7 @@ export { ProductSelector } from './ProductSelector';
 export { AddressSelector } from './AddressSelector';
 export { PaymentMethodSelector } from './PaymentMethodSelector';
 export { OrdersTable } from './OrdersTable';
-export { ArchivedOrderCard } from './ArchivedOrderCard';
+// export { ArchivedOrderCard } from './ArchivedOrderCard'; // Archived functionality disabled
 export { PaymentConfirmationDialog } from './PaymentConfirmationDialog';
 export { OrderActionDialog, type OrderActionType } from './OrderActionDialog';
 export { default as ExportButton } from './ExportButton';

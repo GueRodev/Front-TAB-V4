@@ -62,12 +62,12 @@ const AdminOrdersHistory = () => {
     handleExportExcel,
     clearFilters,
     hasActiveFilters,
-    restoreOrder,
+    // restoreOrder, // Restore functionality disabled
     handleDeleteOrder,
   } = useOrdersHistory();
 
   // Determinar qué acciones mostrar según el tab activo
-  const showActionsForTab = activeTab === 'completed' || activeTab === 'cancelled';
+  const showActionsForTab = activeTab === 'completed' || activeTab === 'cancelled' || activeTab === 'pending';
 
   const tabConfig: { value: HistoryTab; label: string; icon: React.ReactNode; count: number }[] = [
     { value: 'all', label: 'Todos', icon: <History className="h-4 w-4" />, count: counts.all },
@@ -305,7 +305,6 @@ const AdminOrdersHistory = () => {
                     <div className="hidden lg:block">
                       <OrdersTableDynamic
                         orders={filteredOrders}
-                        onRestore={activeTab === 'deleted' ? restoreOrder : undefined}
                         onDelete={showActionsForTab ? handleDeleteOrder : undefined}
                       />
                     </div>
@@ -318,7 +317,8 @@ const AdminOrdersHistory = () => {
                             order={order}
                             showDeliveryInfo={order.type === 'online'}
                           />
-                          {activeTab === 'deleted' && order.deleted_at && (
+                          {/* Restore functionality disabled */}
+                          {/* {activeTab === 'deleted' && order.deleted_at && (
                             <div className="mt-2 flex justify-end">
                               <Button
                                 size="sm"
@@ -330,7 +330,7 @@ const AdminOrdersHistory = () => {
                                 Restaurar
                               </Button>
                             </div>
-                          )}
+                          )} */}
                         </div>
                       ))}
                     </div>

@@ -85,8 +85,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${className}`}>
-      {products.map((product) => {
+      {products.map((product, index) => {
         const categoryInfo = getCategoryInfo(product);
+        // Load first 4 images eagerly for better LCP, rest lazy
+        const shouldLoadEager = index < 4;
         return (
           <ProductCard
             key={product.id}
@@ -102,6 +104,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             onToggleWishlist={(e) => onToggleWishlist(product, e)}
             onAddToCart={(e) => onAddToCart(product, e)}
             onProductClick={() => onProductClick?.(product)}
+            loading={shouldLoadEager ? 'eager' : 'lazy'}
           />
         );
       })}

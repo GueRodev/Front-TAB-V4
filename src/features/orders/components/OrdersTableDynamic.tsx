@@ -11,20 +11,18 @@ import type { Order } from '../types';
 
 interface OrdersTableDynamicProps {
   orders: Order[];
-  onArchive?: (orderId: string) => void;
   onDelete?: (orderId: string, order: Order) => void;
-  onRestore?: (orderId: string) => void;
+  // onRestore?: (orderId: string) => void; // Restore functionality disabled
 }
 
 export const OrdersTableDynamic = ({
   orders,
-  onArchive,
   onDelete,
-  onRestore,
+  // onRestore, // Restore functionality disabled
 }: OrdersTableDynamicProps) => {
   const { visibleColumns, toggleColumn, isColumnVisible, resetToDefaults } = useOrderColumns();
 
-  const hasActions = onArchive || onDelete || onRestore;
+  const hasActions = onDelete; // Removed onRestore - restore functionality disabled
 
   if (orders.length === 0) {
     return (
@@ -75,9 +73,8 @@ export const OrdersTableDynamic = ({
                   key={order.id}
                   order={order}
                   visibleColumns={hasActions ? visibleColumns : visibleColumns.filter(c => c !== 'actions')}
-                  onArchive={onArchive}
                   onDelete={onDelete}
-                  onRestore={onRestore}
+                  // onRestore={onRestore} // Restore functionality disabled
                 />
               ))}
             </TableBody>

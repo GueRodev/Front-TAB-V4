@@ -45,11 +45,11 @@ export const API_ENDPOINTS = {
   ADMIN_ORDERS: "/v1/admin/orders",
   ADMIN_ORDERS_TRASHED: "/v1/admin/orders-trashed",
   ADMIN_ORDER_DETAIL: (id: string | number) => `/v1/admin/orders/${id}`,
-  ADMIN_ORDER_MARK_IN_PROGRESS: (id: string | number) => `/v1/admin/orders/${id}/mark-in-progress`,
+ // ADMIN_ORDER_MARK_IN_PROGRESS: (id: string | number) => `/v1/admin/orders/${id}/mark-in-progress`,
   ADMIN_ORDER_COMPLETE: (id: string | number) => `/v1/admin/orders/${id}/complete`,
   ADMIN_ORDER_CANCEL: (id: string | number) => `/v1/admin/orders/${id}/cancel`,
-  ADMIN_ORDER_ARCHIVE: (id: string | number) => `/v1/admin/orders/${id}/archive`,
-  ADMIN_ORDER_RESTORE: (id: string | number) => `/v1/admin/orders/${id}/restore`,
+  //ADMIN_ORDER_ARCHIVE: (id: string | number) => `/v1/admin/orders/${id}/archive`,// Removed endpoint
+  //ADMIN_ORDER_RESTORE: (id: string | number) => `/v1/admin/orders/${id}/restore`,
 
   // Addresses - Client
   ADDRESSES: "/v1/addresses",

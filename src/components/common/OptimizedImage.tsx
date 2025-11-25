@@ -32,7 +32,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(src);
+  // Use fallback immediately if src is empty/null to prevent 404s
+  const [imageSrc, setImageSrc] = useState(src || fallback);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -41,10 +42,23 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const handleError = () => {
     setIsLoading(false);
     setHasError(true);
-    if (fallback) {
+    if (fallback && imageSrc !== fallback) {
       setImageSrc(fallback);
     }
   };
+
+  // Update image src when prop changes, but use fallback if empty
+  React.useEffect(() => {
+    if (src && src !== imageSrc) {
+      setImageSrc(src);
+      setIsLoading(true);
+      setHasError(false);
+    } else if (!src) {
+      setImageSrc(fallback);
+      setHasError(true);
+      setIsLoading(false);
+    }
+  }, [src, fallback]);
 
   const aspectRatioClasses = {
     square: 'aspect-square',
@@ -61,18 +75,23 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   return (
     <div className={cn('relative overflow-hidden', aspectRatioClasses[aspectRatio], className)}>
-      {/* Loading skeleton */}
+      {/* Loading skeleton - Reserve space to prevent CLS */}
       {isLoading && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
+        <div
+          className="absolute inset-0 bg-muted animate-pulse"
+          style={{ minHeight: aspectRatio === 'square' ? '100%' : '200px' }}
+        />
       )}
-      
-      {/* Actual image */}
+
+      {/* Actual image with fixed dimensions to prevent layout shift */}
       <img
         src={imageSrc}
         alt={alt}
         loading={loading}
         onLoad={handleLoad}
         onError={handleError}
+        width={aspectRatio === 'square' ? '400' : undefined}
+        height={aspectRatio === 'square' ? '400' : undefined}
         className={cn(
           'w-full h-full transition-opacity duration-300',
           objectFitClasses[objectFit],
