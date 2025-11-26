@@ -67,7 +67,8 @@ const AdminOrdersHistory = () => {
   } = useOrdersHistory();
 
   // Determinar qué acciones mostrar según el tab activo
-  const showActionsForTab = activeTab === 'completed' || activeTab === 'cancelled' || activeTab === 'pending';
+  // Solo mostrar eliminar en pedidos pendientes
+  const showActionsForTab = activeTab === 'pending';
 
   const tabConfig: { value: HistoryTab; label: string; icon: React.ReactNode; count: number }[] = [
     { value: 'all', label: 'Todos', icon: <History className="h-4 w-4" />, count: counts.all },
