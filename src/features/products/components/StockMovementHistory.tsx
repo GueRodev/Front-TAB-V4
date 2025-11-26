@@ -144,6 +144,7 @@ export const StockMovementHistory = ({ product }: StockMovementHistoryProps) => 
                   <TableHead className="text-right">Cantidad</TableHead>
                   <TableHead className="text-right">Stock Anterior</TableHead>
                   <TableHead className="text-right">Stock Nuevo</TableHead>
+                  <TableHead>Usuario</TableHead>
                   <TableHead>Razón</TableHead>
                 </TableRow>
               </TableHeader>
@@ -178,6 +179,9 @@ export const StockMovementHistory = ({ product }: StockMovementHistoryProps) => 
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {movement.stock_after}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {movement.user?.name || 'Sistema'}
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
                       {movement.reason || '-'}

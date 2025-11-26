@@ -36,7 +36,11 @@ export interface StockMovement {
   
   // Eager loaded relations (optional)
   product?: Product;
-  user?: any;                          // User type from auth module
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
   order?: Order;
 }
 
