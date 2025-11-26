@@ -4,3 +4,4 @@
  */
 
 export { useUsersAdmin } from './useUsersAdmin';
+export { useClients } from './useClients';

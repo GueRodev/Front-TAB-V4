@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
   // Users - Admin
   USERS: "/v1/users",
   USER_DETAIL: (id: string | number) => `/v1/users/${id}`,
+  USERS_CLIENTS: "/v1/users/clients",
 
   // Locations
   LOCATIONS_CR: "/v1/locations/cr",

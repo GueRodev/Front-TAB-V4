@@ -24,6 +24,8 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { profileService } from "@/features/admin-profile/services/profile.service";
+import type { UserProfile } from "@/features/auth/types";
 
 const menuItems = [
   { title: "Inicio", url: "/admin", icon: BarChart3 },
@@ -52,7 +54,10 @@ export function AdminSidebar() {
   };
 
   const [customLogo, setCustomLogo] = useState<string | null>(null);
+  const [adminUser, setAdminUser] = useState<UserProfile | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
+  // Cargar logo personalizado
   useEffect(() => {
     const logo = localStorage.getItem('customAdminLogo');
     setCustomLogo(logo);
@@ -64,6 +69,24 @@ export function AdminSidebar() {
 
     window.addEventListener('adminLogoUpdated', handleLogoUpdate);
     return () => window.removeEventListener('adminLogoUpdated', handleLogoUpdate);
+  }, []);
+
+  // Cargar usuario autenticado refactorizar si es necesario luego
+  useEffect(() => {
+    const loadAuthenticatedUser = async () => {
+      try {
+        setIsLoadingUser(true);
+        const response = await profileService.getProfile();
+        setAdminUser(response.data);
+      } catch (error) {
+        console.error('Error al cargar el usuario:', error);
+        // En caso de error, el usuario permanecerá null
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    loadAuthenticatedUser();
   }, []);
 
   return (
@@ -147,9 +170,14 @@ export function AdminSidebar() {
             }`}
           >
             <Avatar className="h-9 w-9 border-2 border-white/10 flex-shrink-0">
-              <AvatarImage src="" alt="Admin" />
+              <AvatarImage src="" alt={adminUser?.name || "Admin"} />
               <AvatarFallback className="bg-[#F97316] text-white font-semibold text-sm">
-                AD
+                {isLoadingUser
+                  ? '...'
+                  : adminUser?.name
+                    ? adminUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    : 'AD'
+                }
               </AvatarFallback>
             </Avatar>
             <div className={`flex flex-col min-w-0 flex-1 transition-all duration-300 ${
@@ -158,10 +186,10 @@ export function AdminSidebar() {
                 : 'w-auto opacity-100 scale-100'
             }`}>
               <span className="text-white text-sm font-medium truncate whitespace-nowrap">
-                Admin Usuario
+                {isLoadingUser ? 'Cargando...' : adminUser?.name || 'Admin Usuario'}
               </span>
               <span className="text-white/60 text-xs truncate whitespace-nowrap">
-                admin@toysandbricks.com
+                {isLoadingUser ? '' : adminUser?.email || 'admin@toysandbricks.com'}
               </span>
             </div>
           </Link>

@@ -1,30 +1,35 @@
 /**
  * AdminUsers Page
- * Gestión de usuarios Admin y Moderador
+ * Gestión de usuarios Admin, Moderador y Clientes
  *
  * ✅ INTEGRADO CON LARAVEL BACKEND
- * - Solo gestiona Admin y Moderador (NO clientes)
- * - Usa useUsersAdmin hook con API real
+ * - Gestiona Admin y Moderador
+ * - Muestra Clientes con sus direcciones
  */
 
+import { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminSidebar, AdminHeader } from '@/components/layout';
-import { useUsersAdmin } from '@/features/admin-users';
-import { AdminsList, AdminFormDialog } from '@/features/admin-users';
+import { useUsersAdmin, useClients } from '@/features/admin-users';
+import { AdminsList, AdminFormDialog, ClientsList } from '@/features/admin-users';
 import { DeleteConfirmDialog } from '@/components/common';
 import { useAuth } from '@/features/auth';
+import { Shield, User } from 'lucide-react';
 
 const AdminUsuarios: React.FC = () => {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'admin'; // Solo Super Admin puede gestionar usuarios
+  const isSuperAdmin = user?.role === 'admin';
+  const [activeTab, setActiveTab] = useState('admins');
 
+  // Hook para administradores
   const {
     filteredAdmins,
     searchAdmins,
     isAdminDialogOpen,
     editingAdmin,
     adminFormData,
-    isLoading,
+    isLoading: isLoadingAdmins,
     isSaving,
     deleteDialogOpen,
     adminToDelete,
@@ -38,6 +43,17 @@ const AdminUsuarios: React.FC = () => {
     confirmDeleteAdmin,
   } = useUsersAdmin();
 
+  // Hook para clientes
+  const {
+    clients,
+    isLoading: isLoadingClients,
+    searchQuery: searchClients,
+    expandedClient,
+    setSearchQuery: setSearchClients,
+    handleToggleActive,
+    handleExpandAddress,
+  } = useClients();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -47,17 +63,44 @@ const AdminUsuarios: React.FC = () => {
 
           {/* Main Content */}
           <div className="flex-1 p-4 sm:p-6 lg:p-8">
-            {/* Admins Section */}
-            <AdminsList
-              admins={filteredAdmins}
-              searchQuery={searchAdmins}
-              onSearchChange={setSearchAdmins}
-              onAdd={() => handleOpenAdminDialog()}
-              onEdit={handleOpenAdminDialog}
-              onDelete={handleDeleteAdmin}
-              isLoading={isLoading}
-              canManageUsers={isSuperAdmin}
-            />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+                <TabsTrigger value="admins" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Administradores
+                </TabsTrigger>
+                <TabsTrigger value="clients" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Clientes
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Administradores Tab */}
+              <TabsContent value="admins">
+                <AdminsList
+                  admins={filteredAdmins}
+                  searchQuery={searchAdmins}
+                  onSearchChange={setSearchAdmins}
+                  onAdd={() => handleOpenAdminDialog()}
+                  onEdit={handleOpenAdminDialog}
+                  onDelete={handleDeleteAdmin}
+                  isLoading={isLoadingAdmins}
+                  canManageUsers={isSuperAdmin}
+                />
+              </TabsContent>
+
+              {/* Clientes Tab */}
+              <TabsContent value="clients">
+                <ClientsList
+                  clients={clients}
+                  searchQuery={searchClients}
+                  expandedClient={expandedClient}
+                  onSearchChange={setSearchClients}
+                  onToggle={handleToggleActive}
+                  onExpand={handleExpandAddress}
+                />
+              </TabsContent>
+            </Tabs>
 
             {/* Admin Form Dialog */}
             <AdminFormDialog

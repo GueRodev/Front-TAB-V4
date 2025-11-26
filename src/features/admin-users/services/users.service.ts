@@ -242,4 +242,72 @@ export const usersService = {
       throw error;
     }
   },
+
+  /**
+   * Obtener todos los clientes con sus direcciones
+   * ✅ Integrado con Laravel: GET /api/v1/users/clients
+   *
+   * Obtiene todos los usuarios con rol Cliente
+   * Incluye dirección por defecto y conteo de órdenes
+   */
+  async getClients(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        data: {
+          clients: Array<{
+            id: number;
+            name: string;
+            email: string;
+            phone?: string | null;
+            role: string;
+            created_at: string;
+            email_verified_at?: string | null;
+            orders_count: number;
+            default_address?: {
+              id: number;
+              province: string;
+              canton: string;
+              district: string;
+              address_details: string;
+              label: string;
+            } | null;
+          }>;
+        };
+      }>(API_ENDPOINTS.USERS_CLIENTS);
+
+      const laravelClients = response.data.data.clients;
+
+      // Transformar datos de Laravel a formato frontend
+      const clients = laravelClients.map((client) => ({
+        id: client.id,
+        nombre: client.name,
+        email: client.email,
+        telefono: client.phone || 'N/A',
+        activo: true, // Por defecto activo (puede ser mejorado con un campo en BD)
+        fechaRegistro: new Date(client.created_at).toISOString().split('T')[0],
+        ordenes: client.orders_count,
+        direccion: client.default_address
+          ? {
+              provincia: client.default_address.province,
+              canton: client.default_address.canton,
+              distrito: client.default_address.district,
+              direccion: client.default_address.address_details,
+            }
+          : {
+              provincia: 'N/A',
+              canton: 'N/A',
+              distrito: 'N/A',
+              direccion: 'Sin dirección registrada',
+            },
+      }));
+
+      return {
+        data: clients,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw error;
+    }
+  },
 };
