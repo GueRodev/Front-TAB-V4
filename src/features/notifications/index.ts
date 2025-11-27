@@ -4,10 +4,22 @@
  */
 
 // Components
-export { NotificationsPopover } from './components';
+export * from './components';
 
 // Contexts
 export { NotificationsProvider, useNotifications } from './contexts';
 
+// Hooks
+export * from './hooks';
+
+// Services
+export * from './services';
+
+// Utils
+export * from './utils';
+
+// Validations
+export * from './validations';
+
 // Types
-export type { Notification, NotificationType } from './types';
+export * from './types';

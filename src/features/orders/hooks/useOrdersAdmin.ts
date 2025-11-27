@@ -176,7 +176,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
   const { getOrdersByType, addOrder, deleteOrder, updateOrderStatus, isLoading } = useOrders();
   const { allProducts, refreshProducts } = useProducts();
   const { categories } = useCategories();
-  const { addNotification } = useNotifications();
+  // Notifications now come from backend automatically - no need for addNotification
 
   // Get orders by type
   const onlineOrders = getOrdersByType('online');
@@ -414,12 +414,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Refrescar productos para actualizar el stock en la UI (reserva de stock)
       await refreshProducts();
 
-      addNotification({
-        type: 'order',
-        title: 'Pedido pendiente',
-        message: `Pedido en tienda #${orderId} creado - pendiente de completar`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       // Reset form and cart
       clearCart();
@@ -482,12 +477,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Refrescar productos para actualizar el stock en la UI (stock liberado)
       await refreshProducts();
 
-      addNotification({
-        type: 'order',
-        title: 'Pedido eliminado',
-        message: `Pedido #${orderId} eliminado`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       toast({
         title: "Pedido eliminado",
@@ -541,12 +531,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Refrescar productos para actualizar el stock en la UI
       await refreshProducts();
 
-      addNotification({
-        type: 'order',
-        title: 'Pedido completado',
-        message: `Pedido #${order.id} completado`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       toast({
         title: "Pedido completado",
@@ -592,12 +577,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Refrescar productos para actualizar el stock en la UI
       await refreshProducts();
 
-      addNotification({
-        type: 'order',
-        title: 'Pedido completado',
-        message: `Pedido #${order.id} completado`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       toast({
         title: "Pedido completado",
@@ -646,12 +626,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Refrescar productos para actualizar el stock en la UI (stock liberado)
       await refreshProducts();
 
-      addNotification({
-        type: 'order',
-        title: 'Pedido cancelado',
-        message: `Pedido #${order.id} cancelado`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       toast({
         title: "Pedido cancelado",
@@ -703,12 +678,7 @@ export const useOrdersAdmin = (): UseOrdersAdminReturn => {
       // Refrescar productos para actualizar el stock en la UI
       await refreshProducts();
 
-      addNotification({
-        type: 'order',
-        title: 'Pedido completado',
-        message: `Pedido #${order.id} completado`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       toast({
         title: "Pedido completado",

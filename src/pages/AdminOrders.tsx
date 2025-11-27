@@ -14,16 +14,20 @@ import {
   OrdersList,
   InStoreOrderForm,
   PaymentConfirmationDialog,
-  OrderActionDialog
+  OrderActionDialog,
+  useOrders
 } from '@/features/orders';
-import { ShoppingCart, Store, History, Eye, Loader2 } from 'lucide-react';
+import { useNotifications } from '@/features/notifications';
+import { ShoppingCart, Store, History, Eye, Loader2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
   const { categories } = useCategories();
-  
+  const { refreshOrders } = useOrders();
+  const { refreshNotifications } = useNotifications();
+
   // Estado local para pedidos ocultos (temporalmente)
   const [hiddenOrderIds, setHiddenOrderIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('hiddenOrderIds');
@@ -149,21 +153,38 @@ const AdminOrders = () => {
           <main className="p-3 md:p-4 lg:p-6 space-y-6 md:space-y-8 max-w-full overflow-x-hidden">
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
-              <Button
-                onClick={() => {
-                  setHiddenOrderIds([]);
-                  localStorage.removeItem('hiddenOrderIds');
-                  toast({ title: "Pedidos ocultos restaurados" });
-                }}
-                variant="ghost"
-                size="sm"
-                disabled={hiddenOrderIds.length === 0}
-                className="gap-2"
-              >
-                <Eye className="h-4 w-4" />
-                Mostrar Ocultos ({hiddenOrderIds.length})
-              </Button>
-              
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setHiddenOrderIds([]);
+                    localStorage.removeItem('hiddenOrderIds');
+                    toast({ title: "Pedidos ocultos restaurados" });
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  disabled={hiddenOrderIds.length === 0}
+                  className="gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Mostrar Ocultos ({hiddenOrderIds.length})
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    refreshOrders();
+                    refreshNotifications();
+                    toast({ title: "Actualizando..." });
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  disabled={isLoading}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  Actualizar
+                </Button>
+              </div>
+
               <Button
                 onClick={() => navigate('/admin/orders/history')}
                 variant="outline"

@@ -32,7 +32,7 @@ const NotificationsPopover: React.FC = () => {
 
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
-    
+
     // Redirigir según el tipo de notificación
     if (notification.link) {
       navigate(notification.link);

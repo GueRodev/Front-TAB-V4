@@ -93,7 +93,7 @@ interface UseProductsAdminReturn {
 export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean } => {
   const { products, loading, pagination, goToPage, addProduct, updateProduct, deleteProduct, toggleFeatured } = useProducts();
   const { categories } = useCategories();
-  const { addNotification } = useNotifications();
+  // Notifications now come from backend automatically - no need for addNotification
 
   // Product filtering logic (delegated to useProductFilters)
   const {

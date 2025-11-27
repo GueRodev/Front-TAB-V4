@@ -46,7 +46,7 @@ export const useOrderForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { addOrder } = useOrders();
-  const { addNotification } = useNotifications();
+  // Notifications now come from backend automatically - no need for addNotification
   const { items: cart, clearCart } = useCart();
   const { user } = useAuth();
 
@@ -302,13 +302,7 @@ export const useOrderForm = () => {
       // Context internally calls the service and calculates subtotal/total
       const orderId = await addOrder(orderData);
 
-      // Add notification
-      addNotification({
-        type: 'order',
-        title: 'Nuevo pedido',
-        message: `Pedido #${orderId} recibido de ${formData.customerName}`,
-        time: 'Ahora',
-      });
+      // Notification will be created by backend automatically
 
       // Open WhatsApp with order details
       openWhatsApp(orderId);

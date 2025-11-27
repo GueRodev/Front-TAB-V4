@@ -116,6 +116,34 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     refreshOrders();
   }, [user?.id, isAuthenticated, refreshOrders]);
 
+  // Refetch orders when window gains focus (user returns to tab)
+  useEffect(() => {
+    if (!isAdmin || !isAuthenticated) return;
+
+    const handleFocus = () => {
+      refreshOrders();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isAdmin, isAuthenticated, refreshOrders]);
+
+  // Auto-refresh orders every 60 seconds for admins
+  useEffect(() => {
+    if (!isAdmin || !isAuthenticated) return;
+
+    const intervalId = setInterval(() => {
+      refreshOrders();
+    }, 60000); // 60 seconds
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isAdmin, isAuthenticated, refreshOrders]);
+
   const addOrder = async (
     orderData: Omit<Order, 'id' | 'createdAt' | 'order_number' | 'subtotal' | 'shipping_cost' | 'total' | 'updatedAt'>
   ): Promise<string> => {

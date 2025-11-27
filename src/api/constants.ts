@@ -66,6 +66,13 @@ export const API_ENDPOINTS = {
   USER_DETAIL: (id: string | number) => `/v1/users/${id}`,
   USERS_CLIENTS: "/v1/users/clients",
 
+  // Notifications - Admin
+  NOTIFICATIONS: "/v1/notifications",
+  NOTIFICATIONS_UNREAD_COUNT: "/v1/notifications/unread-count",
+  NOTIFICATION_READ: (id: string | number) => `/v1/notifications/${id}/read`,
+  NOTIFICATIONS_READ_ALL: "/v1/notifications/read-all",
+  NOTIFICATION_DELETE: (id: string | number) => `/v1/notifications/${id}`,
+
   // Locations
   LOCATIONS_CR: "/v1/locations/cr",
 
