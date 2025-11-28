@@ -7,6 +7,7 @@
 // FRONTEND TYPES
 // ========================================
 
+// Solo utilizamos 'order' por el momento - los demás tipos están comentados
 export type NotificationType = 'order' | 'user' | 'product' | 'stock' | 'general';
 
 export interface Notification {
@@ -17,7 +18,7 @@ export interface Notification {
   time: string;
   read: boolean;
   createdAt: Date;
-  orderId?: string;
+  orderId?: string; // Solo se usa para notificaciones de pedidos
   link?: string;
 }
 
@@ -35,7 +36,8 @@ export interface ApiNotification {
   title: string;
   message: string;
   data: {
-    order_id?: number;
+    order_id?: number; // Solo se usa para notificaciones de pedidos
+    // Los siguientes campos están comentados ya que no se usan por el momento
     product_id?: number;
     user_id?: number;
     stock?: number;
@@ -45,7 +47,7 @@ export interface ApiNotification {
   read_at: string | null;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
+  deleted_at: string | null; // No se usa soft delete por el momento
 }
 
 /**

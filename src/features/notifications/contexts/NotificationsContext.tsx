@@ -15,6 +15,7 @@ interface NotificationsContextType {
   unreadCount: number;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  forceDeleteNotification: (id: string) => void;
   isLoading: boolean;
   refreshNotifications: () => void;
 }
@@ -27,6 +28,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     unreadCount,
     markAsRead,
     markAllAsRead,
+    forceDeleteNotification,
     isLoading,
     refreshNotifications,
   } = useNotificationsApi();
@@ -38,6 +40,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         unreadCount,
         markAsRead,
         markAllAsRead,
+        forceDeleteNotification,
         isLoading,
         refreshNotifications,
       }}

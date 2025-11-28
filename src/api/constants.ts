@@ -71,7 +71,9 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_UNREAD_COUNT: "/v1/notifications/unread-count",
   NOTIFICATION_READ: (id: string | number) => `/v1/notifications/${id}/read`,
   NOTIFICATIONS_READ_ALL: "/v1/notifications/read-all",
-  NOTIFICATION_DELETE: (id: string | number) => `/v1/notifications/${id}`,
+  // COMENTADO: No utilizamos soft delete por el momento
+  // NOTIFICATION_DELETE: (id: string | number) => `/v1/notifications/${id}`,
+  NOTIFICATION_FORCE_DELETE: (id: string | number) => `/v1/notifications/${id}/force`,
 
   // Locations
   LOCATIONS_CR: "/v1/locations/cr",

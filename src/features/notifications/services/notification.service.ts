@@ -44,11 +44,21 @@ export const notificationService = {
   },
 
   /**
-   * Delete a specific notification
+   * Delete a specific notification (soft delete)
+   * COMENTADO: No utilizamos soft delete por el momento
    * @param id - Notification ID
    */
-  delete: async (id: string | number) => {
-    const response = await api.delete(API_ENDPOINTS.NOTIFICATION_DELETE(id));
+  // delete: async (id: string | number) => {
+  //   const response = await api.delete(API_ENDPOINTS.NOTIFICATION_DELETE(id));
+  //   return response.data;
+  // },
+
+  /**
+   * Permanently delete a specific notification (force delete)
+   * @param id - Notification ID
+   */
+  forceDelete: async (id: string | number) => {
+    const response = await api.delete(API_ENDPOINTS.NOTIFICATION_FORCE_DELETE(id));
     return response.data;
   },
 };

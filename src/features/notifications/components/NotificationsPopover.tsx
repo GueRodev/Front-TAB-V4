@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Bell, ShoppingBag, User as UserIcon, Package, MoreVertical } from 'lucide-react';
+import { Bell, ShoppingBag, MoreVertical, Trash2 } from 'lucide-react';
+// Iconos comentados - solo se notifica cuando se crea pedido desde carrito
+// import { User as UserIcon, Package } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const NotificationsPopover: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, forceDeleteNotification } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -18,13 +20,15 @@ const NotificationsPopover: React.FC = () => {
   const allNotifications = notifications;
 
   const getNotificationIcon = (type: string) => {
+    // Solo mostramos notificaciones de pedidos nuevos
     switch (type) {
       case 'order':
         return <ShoppingBag className="h-4 w-4" />;
-      case 'user':
-        return <UserIcon className="h-4 w-4" />;
-      case 'product':
-        return <Package className="h-4 w-4" />;
+      // Tipos comentados - solo se notifica cuando se crea pedido desde carrito
+      // case 'user':
+      //   return <UserIcon className="h-4 w-4" />;
+      // case 'product':
+      //   return <Package className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -33,53 +37,70 @@ const NotificationsPopover: React.FC = () => {
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
 
-    // Redirigir según el tipo de notificación
+    // Solo manejamos notificaciones de pedidos nuevos
+    // Redirigir a la página de pedidos
     if (notification.link) {
       navigate(notification.link);
-      setOpen(false);
-    } else if (notification.type === 'order' && notification.orderId) {
-      // Redirigir a la página de pedidos con el pedido específico
-      navigate('/admin/orders');
       setOpen(false);
     } else if (notification.type === 'order') {
       navigate('/admin/orders');
       setOpen(false);
-    } else if (notification.type === 'user') {
-      navigate('/admin/users');
-      setOpen(false);
-    } else if (notification.type === 'product') {
-      navigate('/admin/products');
-      setOpen(false);
     }
+
+    // Tipos comentados - solo se notifica cuando se crea pedido desde carrito
+    // else if (notification.type === 'user') {
+    //   navigate('/admin/users');
+    //   setOpen(false);
+    // } else if (notification.type === 'product') {
+    //   navigate('/admin/products');
+    //   setOpen(false);
+    // }
+  };
+
+  const handleDeleteNotification = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation(); // Evitar que se active el click de la notificación
+    forceDeleteNotification(notificationId);
   };
 
   const NotificationItem = ({ notification }: { notification: any }) => (
     <div
-      onClick={() => handleNotificationClick(notification)}
       className={cn(
-        "flex items-start gap-3 p-3 hover:bg-accent/50 cursor-pointer transition-colors border-b border-border/40 last:border-0",
+        "flex items-start gap-3 p-3 hover:bg-accent/50 transition-colors border-b border-border/40 last:border-0 group",
         !notification.read && "bg-accent/20"
       )}
     >
-      <div className="flex-shrink-0 mt-1 p-2 rounded-full bg-primary/10">
-        {getNotificationIcon(notification.type)}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">
-          {notification.title}
-        </p>
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {notification.message}
-        </p>
-        <span className="text-xs text-muted-foreground mt-1 inline-block">
-          {notification.time}
-        </span>
-      </div>
-      {!notification.read && (
-        <div className="flex-shrink-0">
-          <div className="w-2 h-2 rounded-full bg-primary"></div>
+      <div
+        onClick={() => handleNotificationClick(notification)}
+        className="flex items-start gap-3 flex-1 cursor-pointer"
+      >
+        <div className="flex-shrink-0 mt-1 p-2 rounded-full bg-primary/10">
+          {getNotificationIcon(notification.type)}
         </div>
-      )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            {notification.title}
+          </p>
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {notification.message}
+          </p>
+          <span className="text-xs text-muted-foreground mt-1 inline-block">
+            {notification.time}
+          </span>
+        </div>
+        {!notification.read && (
+          <div className="flex-shrink-0">
+            <div className="w-2 h-2 rounded-full bg-primary"></div>
+          </div>
+        )}
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+        onClick={(e) => handleDeleteNotification(e, notification.id)}
+      >
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
     </div>
   );
 

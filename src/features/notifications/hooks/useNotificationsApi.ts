@@ -46,9 +46,18 @@ export const useNotificationsApi = () => {
     },
   });
 
-  // Delete notification
-  const deleteNotificationMutation = useMutation({
-    mutationFn: (id: string) => notificationService.delete(id),
+  // Delete notification (soft delete)
+  // COMENTADO: No utilizamos soft delete por el momento
+  // const deleteNotificationMutation = useMutation({
+  //   mutationFn: (id: string) => notificationService.delete(id),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+  //   },
+  // });
+
+  // Force delete notification (permanent delete)
+  const forceDeleteNotificationMutation = useMutation({
+    mutationFn: (id: string) => notificationService.forceDelete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
     },
@@ -64,7 +73,9 @@ export const useNotificationsApi = () => {
     error,
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
-    deleteNotification: deleteNotificationMutation.mutate,
+    // COMENTADO: No utilizamos soft delete por el momento
+    // deleteNotification: deleteNotificationMutation.mutate,
+    forceDeleteNotification: forceDeleteNotificationMutation.mutate,
     refreshNotifications: refetch,
   };
 };
