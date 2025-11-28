@@ -90,8 +90,8 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [deletedCount, setDeletedCount] = useState(0);
   const { user } = useAuth();
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  // Check if user is admin or moderator
+  const isAdmin = user?.role === 'admin' || user?.role === 'moderador';
 
   // Load categories from API on mount
   useEffect(() => {

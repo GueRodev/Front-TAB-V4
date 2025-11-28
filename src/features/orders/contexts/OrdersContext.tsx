@@ -65,8 +65,8 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const { user, isAuthenticated } = useAuth();
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  // Check if user is admin or moderator
+  const isAdmin = user?.role === 'admin' || user?.role === 'moderador';
 
   // Function to load/refresh active orders (pending, in_progress)
   const refreshOrders = useCallback(async () => {
@@ -226,7 +226,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const previousStatus = currentOrder.status;
 
       // Validate status transitions (in_progress and archived disabled)
-      const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+      const validTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
         'pending': ['completed', 'cancelled'], // Removed 'in_progress'
         // 'in_progress': ['completed', 'cancelled'], // In-progress functionality disabled
         'completed': [],

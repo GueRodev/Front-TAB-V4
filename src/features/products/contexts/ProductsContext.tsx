@@ -60,8 +60,8 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentPage, setCurrentPage] = useState(1);
   const { user } = useAuth();
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  // Check if user is admin or moderator
+  const isAdmin = user?.role === 'admin' || user?.role === 'moderador';
 
   // Function to load products for a specific page
   const loadProductsPage = useCallback(async (page: number): Promise<void> => {
