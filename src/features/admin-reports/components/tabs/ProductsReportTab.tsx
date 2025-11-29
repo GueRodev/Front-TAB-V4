@@ -121,7 +121,9 @@ export const ProductsReportTab = () => {
                 products={report.top_selling_products || []}
                 title="Productos Más Vendidos"
                 emptyMessage="No hay datos de ventas"
+                showStock={false}
                 showSales={true}
+                showStatus={false}
               />
             </TabsContent>
 
@@ -130,7 +132,9 @@ export const ProductsReportTab = () => {
                 products={report.slow_moving_products || []}
                 title="Productos de Movimiento Lento"
                 emptyMessage="No hay productos de movimiento lento"
+                showStock={false}
                 showSales={true}
+                showStatus={false}
               />
             </TabsContent>
           </Tabs>

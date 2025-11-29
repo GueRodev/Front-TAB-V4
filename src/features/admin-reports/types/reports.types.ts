@@ -96,19 +96,36 @@ export interface OrderTypeBreakdown {
 
 export interface ProductsReport {
   summary: InventorySummary;
-  inventory_valuation: InventoryValuation;
+  products: ProductDetail[];
   out_of_stock_products: OutOfStockProduct[];
   top_selling_products: TopSellingProduct[];
   slow_moving_products: SlowMovingProduct[];
+  inventory_valuation?: InventoryValuation;
   generated_at: string;
+}
+
+export interface ProductDetail {
+  product_id: number;
+  name: string;
+  sku: string;
+  category: string;
+  subcategory?: string;
+  current_stock: number;
+  sale_price: number;
+  cost_price: number;
+  inventory_value: number;
+  status: string;
 }
 
 export interface InventorySummary {
   total_products: number;
   active_products: number;
-  inactive_products: number;
-  out_of_stock_products: number;
-  total_stock_units: number;
+  inactive_products?: number;
+  out_of_stock_count: number;
+  in_stock_count: number;
+  total_stock_units?: number;
+  total_inventory_value: number;
+  average_product_value: number;
 }
 
 export interface InventoryValuation {
@@ -143,6 +160,7 @@ export interface SlowMovingProduct {
   category: string;
   current_stock: number;
   total_sold: number;
+  total_revenue: number;
 }
 
 // ========================================================================

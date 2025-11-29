@@ -20,6 +20,7 @@ export interface ProductAdminFormData {
   category_id: string;
   sku: string;
   price: string;
+  cost_price?: string;
   stock: string;
   description: string;
   status: 'active' | 'inactive' | 'out_of_stock';
@@ -127,6 +128,7 @@ export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean 
     category_id: '',
     sku: '',
     price: '',
+    cost_price: '',
     stock: '',
     description: '',
     status: 'active'
@@ -156,6 +158,7 @@ export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean 
       category_id: product.category_id,
       sku: product.sku || '',
       price: product.price.toString(),
+      cost_price: product.cost_price?.toString() || '',
       stock: product.stock.toString(),
       description: product.description || '',
       status: product.status
@@ -183,6 +186,7 @@ export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean 
         category_id: formData.category_id,
         sku: formData.sku || null,
         price: parseFloat(formData.price),
+        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
         stock: parseInt(formData.stock) || 0,
         description: formData.description || null,
         image: selectedImage,
@@ -204,6 +208,7 @@ export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean 
         category_id: '',
         sku: '',
         price: '',
+        cost_price: '',
         stock: '',
         description: '',
         status: 'active'
@@ -230,6 +235,7 @@ export const useProductsAdmin = (): UseProductsAdminReturn & { loading: boolean 
         category_id: formData.category_id,
         sku: formData.sku || null,
         price: parseFloat(formData.price),
+        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
         stock: parseInt(formData.stock) || 0,
         description: formData.description || null,
         status: formData.status,

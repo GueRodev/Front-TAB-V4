@@ -24,6 +24,7 @@ export interface Product {
   
   // Pricing & Stock
   price: number;                          // decimal(10,2) in backend
+  cost_price: number | null;              // decimal(10,2) in backend - Product cost
   stock: number;
   
   // Media
@@ -61,6 +62,7 @@ export interface CreateProductDto {
   description?: string | null;
   sku?: string | null;
   price: number;
+  cost_price?: number | null;
   stock: number;
   image?: File;                           // For upload
   status: ProductStatus;

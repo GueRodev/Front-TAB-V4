@@ -122,7 +122,7 @@ export const reportsService = {
    * 🔗 LARAVEL: GET /api/v1/reports/sales/export/{format}
    */
   async exportSalesReport(filters: ReportFilters, format: ExportFormat): Promise<Blob> {
-    const response = await api.get(`/api/v1/reports/sales/export/${format}`, {
+    const response = await api.get(`/v1/reports/sales/export/${format}`, {
       params: filters,
       responseType: 'blob',
     });
@@ -134,7 +134,7 @@ export const reportsService = {
    * 🔗 LARAVEL: GET /api/v1/reports/products/export/{format}
    */
   async exportProductsReport(filters: any, format: ExportFormat): Promise<Blob> {
-    const response = await api.get(`/api/v1/reports/products/export/${format}`, {
+    const response = await api.get(`/v1/reports/products/export/${format}`, {
       params: filters,
       responseType: 'blob',
     });
@@ -146,7 +146,7 @@ export const reportsService = {
    * 🔗 LARAVEL: GET /api/v1/reports/orders/export/{format}
    */
   async exportOrdersReport(filters: ReportFilters, format: ExportFormat): Promise<Blob> {
-    const response = await api.get(`/api/v1/reports/orders/export/${format}`, {
+    const response = await api.get(`/v1/reports/orders/export/${format}`, {
       params: filters,
       responseType: 'blob',
     });

@@ -104,7 +104,7 @@ export const OrdersReportTab = () => {
                 { label: 'Total Pedidos', value: report.summary.total_orders || 0 },
                 {
                   label: 'Valor Total',
-                  value: formatCurrency(Number(report.summary.total_value || 0)),
+                  value: formatCurrency(Number(report.summary.total_revenue || 0)),
                   className: 'text-green-600',
                 },
                 {
@@ -125,17 +125,17 @@ export const OrdersReportTab = () => {
 
             <ReportSummaryCard
               title="Por Tipo de Pedido"
-              items={(report.type_breakdown || []).map((item) => ({
+              items={(report.order_type_breakdown || []).map((item) => ({
                 label: getOrderTypeLabel(item.order_type),
-                value: `${item.count || 0} (${Number(item.percentage || 0).toFixed(1)}%)`,
+                value: `${item.orders || 0} (${Number(item.percentage || 0).toFixed(1)}%)`,
               }))}
             />
 
             <ReportSummaryCard
               title="Por Método de Pago"
-              items={(report.payment_breakdown || []).map((item) => ({
+              items={(report.payment_method_breakdown || []).map((item) => ({
                 label: getPaymentMethodLabel(item.payment_method),
-                value: `${item.count || 0} pedidos`,
+                value: `${item.orders || 0} pedidos`,
               }))}
             />
           </div>

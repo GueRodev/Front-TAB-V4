@@ -35,11 +35,12 @@ export function transformLaravelSalesReport(laravelReport: any): any {
  */
 export function transformLaravelProductsReport(laravelReport: any): any {
   return {
-    period: laravelReport.period,
     summary: laravelReport.summary,
     products: laravelReport.products || [],
-    performance: laravelReport.performance || [],
-    categories: laravelReport.categories || [],
+    out_of_stock_products: laravelReport.out_of_stock_products || [],
+    top_selling_products: laravelReport.top_selling_products || [],
+    slow_moving_products: laravelReport.slow_moving_products || [],
+    inventory_valuation: laravelReport.inventory_valuation,
     generated_at: laravelReport.generated_at,
   };
 }
@@ -53,7 +54,8 @@ export function transformLaravelOrdersReport(laravelReport: any): any {
     summary: laravelReport.summary,
     orders: laravelReport.orders || [],
     status_breakdown: laravelReport.status_breakdown || [],
-    type_breakdown: laravelReport.type_breakdown || [],
+    order_type_breakdown: laravelReport.order_type_breakdown || [],
+    payment_method_breakdown: laravelReport.payment_method_breakdown || [],
     generated_at: laravelReport.generated_at,
   };
 }
