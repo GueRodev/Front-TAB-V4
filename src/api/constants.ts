@@ -78,6 +78,34 @@ export const API_ENDPOINTS = {
   // Locations
   LOCATIONS_CR: "/v1/locations/cr",
 
+  // Dashboard - Admin
+  DASHBOARD_OVERVIEW: "/v1/dashboard/overview",
+  DASHBOARD_SALES_TREND: "/v1/dashboard/sales-trend",
+  DASHBOARD_RECENT_ORDERS: "/v1/dashboard/recent-orders",
+  DASHBOARD_TOP_PRODUCTS: "/v1/dashboard/top-products",
+  DASHBOARD_QUICK_SUMMARY: "/v1/dashboard/quick-summary",
+
+  // Analytics - Admin
+  ANALYTICS_YEARLY: "/v1/analytics/yearly",
+  ANALYTICS_MONTHLY_BREAKDOWN: "/v1/analytics/monthly-breakdown",
+  ANALYTICS_COMPARE_YEARS: "/v1/analytics/compare-years",
+  ANALYTICS_TOP_MONTHS: "/v1/analytics/top-months",
+
+  // Reports - Admin
+  REPORTS_SALES: "/v1/reports/sales",
+  REPORTS_SALES_MONTHLY: "/v1/reports/sales/monthly",
+  REPORTS_SALES_EXPORT_PDF: "/v1/reports/sales/export/pdf",
+  REPORTS_SALES_EXPORT_EXCEL: "/v1/reports/sales/export/excel",
+  REPORTS_PRODUCTS: "/v1/reports/products",
+  REPORTS_PRODUCTS_PERFORMANCE: "/v1/reports/products/performance",
+  REPORTS_PRODUCTS_EXPORT_PDF: "/v1/reports/products/export/pdf",
+  REPORTS_PRODUCTS_EXPORT_EXCEL: "/v1/reports/products/export/excel",
+  REPORTS_ORDERS: "/v1/reports/orders",
+  REPORTS_ORDERS_AUDIT: "/v1/reports/orders/audit",
+  REPORTS_ORDERS_PENDING: "/v1/reports/orders/pending",
+  REPORTS_ORDERS_EXPORT_PDF: "/v1/reports/orders/export/pdf",
+  REPORTS_ORDERS_EXPORT_EXCEL: "/v1/reports/orders/export/excel",
+
   // Test (Development only)
   TEST_EMAIL: "/test-email",
 } as const;

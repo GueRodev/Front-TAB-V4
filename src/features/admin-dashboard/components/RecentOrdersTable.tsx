@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/formatters';
 import { formatOrderId } from '../helpers';
 import { getStatusLabel } from '@/features/orders/helpers';
-import { EmptyTableRow } from './EmptyTableRow';
+import { EmptyTableRow } from '@/components/shared';
 import type { RecentOrder } from '../types';
 
 interface RecentOrdersTableProps {

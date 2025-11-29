@@ -9,7 +9,8 @@ import {
   Settings,
   LogOut,
   Package2,
-  User
+  User,
+  FileText
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -29,6 +30,7 @@ import type { UserProfile } from "@/features/auth/types";
 
 const menuItems = [
   { title: "Inicio", url: "/admin", icon: BarChart3 },
+  { title: "Reportes", url: "/admin/reports", icon: FileText },
   { title: "Productos", url: "/admin/products", icon: Package },
   { title: "Categorías", url: "/admin/categories", icon: FolderTree },
   { title: "Usuarios", url: "/admin/users", icon: Users },

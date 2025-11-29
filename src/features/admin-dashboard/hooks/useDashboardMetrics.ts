@@ -1,58 +1,140 @@
 /**
- * Dashboard Metrics Business Logic Hook
- * Centralizes all dashboard data processing and calculations
+ * Dashboard Metrics Hook
+ * Fetches dashboard data from Laravel API with caching
+ * ✅ Integrated with backend dashboard endpoints
  */
 
-import { useMemo } from 'react';
-import { useOrders } from '@/features/orders';
-import {
-  calculateOrderMetrics,
-  getTopProducts,
-  getUniqueProductsCount,
-  getRecentOrders,
-  prepareChartData,
-  type OrderMetrics,
-  type ChartDataPoint,
-} from '@/features/orders/helpers';
-import type { Order } from '@/features/orders/types';
-
-interface TopProduct {
-  name: string;
-  quantity: number;
-  revenue: number;
-}
+import { useQuery } from '@tanstack/react-query';
+import { dashboardService } from '../services';
+import type {
+  DashboardMetrics,
+  SalesTrendData,
+  TopProduct,
+  RecentOrder,
+} from '../types';
 
 interface UseDashboardMetricsReturn {
-  metrics: OrderMetrics;
-  chartData: ChartDataPoint[];
-  recentOrders: Order[];
-  topProducts: TopProduct[];
-  uniqueProducts: number;
+  // Overview metrics
+  metrics: DashboardMetrics | undefined;
+  isLoadingMetrics: boolean;
+  metricsError: Error | null;
+
+  // Sales trend (last 7 days)
+  chartData: SalesTrendData[] | undefined;
+  isLoadingChart: boolean;
+  chartError: Error | null;
+
+  // Recent orders
+  recentOrders: RecentOrder[] | undefined;
+  isLoadingOrders: boolean;
+  ordersError: Error | null;
+
+  // Top products
+  topProducts: TopProduct[] | undefined;
+  isLoadingProducts: boolean;
+  productsError: Error | null;
+
+  // Combined states
+  isLoading: boolean;
+  isError: boolean;
+
+  // Refetch functions
+  refetchAll: () => void;
 }
 
+/**
+ * Main dashboard hook - fetches all dashboard data from API
+ * 🔗 LARAVEL: Multiple endpoints with optimized caching
+ */
 export const useDashboardMetrics = (): UseDashboardMetricsReturn => {
-  const { orders } = useOrders();
+  // Fetch overview metrics (5 min cache)
+  const {
+    data: metrics,
+    isLoading: isLoadingMetrics,
+    error: metricsError,
+    refetch: refetchMetrics,
+  } = useQuery({
+    queryKey: ['dashboard', 'overview'],
+    queryFn: () => dashboardService.getOverview(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Auto-refresh
+  });
 
-  // Calculate all metrics
-  const metrics = useMemo(() => calculateOrderMetrics(orders), [orders]);
+  // Fetch sales trend for last 7 days (10 min cache)
+  const {
+    data: chartData,
+    isLoading: isLoadingChart,
+    error: chartError,
+    refetch: refetchChart,
+  } = useQuery({
+    queryKey: ['dashboard', 'sales-trend', 7],
+    queryFn: () => dashboardService.getSalesTrend(7),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-  // Prepare chart data for last 7 days
-  const chartData = useMemo(() => prepareChartData(orders, 7), [orders]);
+  // Fetch recent orders (2 min cache - most dynamic)
+  const {
+    data: recentOrders,
+    isLoading: isLoadingOrders,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useQuery({
+    queryKey: ['dashboard', 'recent-orders', 5],
+    queryFn: () => dashboardService.getRecentOrders(5),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 2 * 60 * 1000,
+  });
 
-  // Get recent orders (last 5)
-  const recentOrders = useMemo(() => getRecentOrders(orders, 5), [orders]);
+  // Fetch top products (15 min cache - changes slowly)
+  const {
+    data: topProducts,
+    isLoading: isLoadingProducts,
+    error: productsError,
+    refetch: refetchProducts,
+  } = useQuery({
+    queryKey: ['dashboard', 'top-products', 5],
+    queryFn: () => dashboardService.getTopProducts(5),
+    staleTime: 15 * 60 * 1000, // 15 minutes
+  });
 
-  // Get top selling products (top 5)
-  const topProducts = useMemo(() => getTopProducts(orders, 5), [orders]);
+  // Combined loading state
+  const isLoading = isLoadingMetrics || isLoadingChart || isLoadingOrders || isLoadingProducts;
 
-  // Count unique products sold
-  const uniqueProducts = useMemo(() => getUniqueProductsCount(orders), [orders]);
+  // Combined error state
+  const isError = !!(metricsError || chartError || ordersError || productsError);
+
+  // Refetch all data
+  const refetchAll = () => {
+    refetchMetrics();
+    refetchChart();
+    refetchOrders();
+    refetchProducts();
+  };
 
   return {
+    // Data
     metrics,
     chartData,
     recentOrders,
     topProducts,
-    uniqueProducts,
+
+    // Individual loading states
+    isLoadingMetrics,
+    isLoadingChart,
+    isLoadingOrders,
+    isLoadingProducts,
+
+    // Individual error states
+    metricsError: metricsError as Error | null,
+    chartError: chartError as Error | null,
+    ordersError: ordersError as Error | null,
+    productsError: productsError as Error | null,
+
+    // Combined states
+    isLoading,
+    isError,
+
+    // Actions
+    refetchAll,
   };
 };

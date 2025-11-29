@@ -16,8 +16,9 @@ export const formatChartTooltip = (value: number, name: string): [string, string
 /**
  * Formats order ID to display format (first 8 characters with #)
  */
-export const formatOrderId = (orderId: string): string => {
-  return `#${orderId.slice(0, 8)}`;
+export const formatOrderId = (orderId: string | number): string => {
+  const id = String(orderId);
+  return `#${id.slice(0, 8)}`;
 };
 
 /**

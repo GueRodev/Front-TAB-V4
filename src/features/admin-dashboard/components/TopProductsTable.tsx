@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/formatters';
-import { EmptyTableRow } from './EmptyTableRow';
+import { EmptyTableRow } from '@/components/shared';
 import type { TopProduct } from '../types';
 
 interface TopProductsTableProps {
